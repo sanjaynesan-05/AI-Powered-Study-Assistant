@@ -1,15 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, BookOpen, ExternalLink, MapPin, DollarSign, Filter, Search, ChevronDown } from 'lucide-react';
+import { Briefcase, MapPin, DollarSign, Filter, Search, ChevronDown, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import { Recommendation } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { JobEligibilityTest, TestResult } from '../components/JobEligibilityTest';
 
 export const RecommendationPage: React.FC = () => {
   const { user } = useAuth();
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [filter, setFilter] = useState<'all' | 'job' | 'course'>('all');
+  const [filter, setFilter] = useState<'all' | 'job'>('job');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'default' | 'rating' | 'alphabetical'>('default');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Recommendation | null>(null);
+  const [testIsOpen, setTestIsOpen] = useState(false);
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>(() => {
+    const saved = localStorage.getItem('jobTestResults');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  const [failedAttempts, setFailedAttempts] = useState<Record<string, Date>>(() => {
+    const saved = localStorage.getItem('jobFailedAttempts');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Convert string dates back to Date objects
+      Object.keys(parsed).forEach(key => {
+        parsed[key] = new Date(parsed[key]);
+      });
+      return parsed;
+    }
+    return {};
+  });
 
   useEffect(() => {
     const mockRecommendations: Recommendation[] = [
@@ -25,15 +45,6 @@ export const RecommendationPage: React.FC = () => {
         url: 'https://example-jobs.com/frontend-dev'
       },
       {
-        id: '2',
-        title: 'Advanced React Course',
-        company: 'CodeAcademy Pro',
-        type: 'course',
-        description: 'Master advanced React patterns, hooks, and state management.',
-        skills: ['React', 'JavaScript', 'Redux'],
-        url: 'https://example-courses.com/react-advanced'
-      },
-      {
         id: '3',
         title: 'Full Stack Engineer',
         company: 'StartupXYZ',
@@ -43,15 +54,6 @@ export const RecommendationPage: React.FC = () => {
         location: 'Remote',
         salary: '$90k - $140k',
         url: 'https://example-jobs.com/fullstack'
-      },
-      {
-        id: '4',
-        title: 'Python for Data Science',
-        company: 'DataLearn',
-        type: 'course',
-        description: 'Learn Python programming specifically for data analysis and machine learning.',
-        skills: ['Python', 'Data Analysis', 'Machine Learning'],
-        url: 'https://example-courses.com/python-data'
       },
       {
         id: '5',
@@ -65,18 +67,120 @@ export const RecommendationPage: React.FC = () => {
         url: 'https://example-jobs.com/ux-designer'
       },
       {
-        id: '6',
-        title: 'Cybersecurity Bootcamp',
-        company: 'SecureLearn',
-        type: 'course',
-        description: 'Comprehensive cybersecurity training covering ethical hacking and defense.',
-        skills: ['Network Security', 'Ethical Hacking', 'Penetration Testing'],
-        url: 'https://example-courses.com/cybersecurity'
+        id: '7',
+        title: 'Backend Developer',
+        company: 'CloudSolutions',
+        type: 'job',
+        description: 'Develop robust backend systems using Node.js and databases.',
+        skills: ['Node.js', 'MongoDB', 'Express'],
+        location: 'Austin, TX',
+        salary: '$85k - $130k',
+        url: 'https://example-jobs.com/backend-dev'
+      },
+      {
+        id: '8',
+        title: 'DevOps Engineer',
+        company: 'InfraTech',
+        type: 'job',
+        description: 'Build and maintain CI/CD pipelines and cloud infrastructure.',
+        skills: ['Docker', 'Kubernetes', 'AWS'],
+        location: 'Chicago, IL',
+        salary: '$95k - $150k',
+        url: 'https://example-jobs.com/devops'
       }
     ];
 
     setRecommendations(mockRecommendations);
   }, [user?.skills]);
+  
+  // Store test results in local storage
+  useEffect(() => {
+    localStorage.setItem('jobTestResults', JSON.stringify(testResults));
+  }, [testResults]);
+  
+  // Store failed attempts in local storage
+  useEffect(() => {
+    localStorage.setItem('jobFailedAttempts', JSON.stringify(failedAttempts));
+  }, [failedAttempts]);
+  
+  // All jobs require an eligibility test in this implementation
+  
+  // Check if user has a cooldown period for a failed job application
+  const hasCooldown = (jobId: string) => {
+    const failedDate = failedAttempts[jobId];
+    if (!failedDate) return false;
+    
+    // Calculate 24 hours from failed attempt
+    const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in ms
+    const cooldownEnds = new Date(failedDate.getTime() + cooldownPeriod);
+    const now = new Date();
+    
+    return now < cooldownEnds;
+  };
+  
+  // Get remaining cooldown time in hours and minutes
+  const getCooldownRemaining = (jobId: string) => {
+    const failedDate = failedAttempts[jobId];
+    if (!failedDate) return '';
+    
+    const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in ms
+    const cooldownEnds = new Date(failedDate.getTime() + cooldownPeriod);
+    const now = new Date();
+    
+    if (now >= cooldownEnds) return '';
+    
+    const remainingMs = cooldownEnds.getTime() - now.getTime();
+    const hours = Math.floor(remainingMs / (60 * 60 * 1000));
+    const minutes = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+    
+    return `${hours}h ${minutes}m`;
+  };
+
+  // Check if user has passed the test for this job
+  const hasPassedTest = (jobId: string) => {
+    return !!testResults[jobId]?.passed;
+  };
+  
+  // Handle opening the test
+  const handleOpenTest = (job: Recommendation) => {
+    if (hasCooldown(job.id)) {
+      alert(`You cannot retake this test yet. Please wait ${getCooldownRemaining(job.id)}.`);
+      return;
+    }
+    
+    // Always set the selected job and open the test modal
+    setSelectedJob(job);
+    setTestIsOpen(true);
+  };
+  
+  // Handle test completion
+  const handleTestComplete = (result: TestResult) => {
+    if (!selectedJob) return;
+    
+    // Save the test result
+    setTestResults(prev => ({
+      ...prev,
+      [selectedJob.id]: result
+    }));
+    
+    // Record failed attempts for cooldown
+    if (!result.passed) {
+      setFailedAttempts(prev => ({
+        ...prev,
+        [selectedJob.id]: new Date()
+      }));
+    }
+    
+    // We no longer immediately close the test
+    // The user can see the results and choose to close it themselves
+    // setTestIsOpen(false);
+  };
+  
+  // Handle closing the test modal
+  const handleCloseTest = () => {
+    setTestIsOpen(false);
+    setSelectedJob(null);
+  };
 
   const sortedAndFilteredRecommendations = recommendations
     .filter(rec => {
@@ -103,9 +207,9 @@ export const RecommendationPage: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white 
                      hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <h1 className="text-2xl font-bold mb-1 relative z-10">🎯 Recommendations</h1>
+        <h1 className="text-2xl font-bold mb-1 relative z-10">🎯 Job Recommendations</h1>
         <p className="text-blue-100 relative z-10">
-          Personalized job and course recommendations
+          Personalized job recommendations
         </p>
       </div>
 
@@ -130,7 +234,7 @@ export const RecommendationPage: React.FC = () => {
           {/* Filter and Sort */}
           <div className="flex items-center space-x-3">
             {/* Type Filter */}
-            {(['all', 'job', 'course'] as const).map((filterType) => (
+            {(['all', 'job'] as const).map((filterType) => (
               <button
                 key={filterType}
                 onClick={() => setFilter(filterType)}
@@ -141,7 +245,7 @@ export const RecommendationPage: React.FC = () => {
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
               >
-                {filterType === 'all' ? 'All' : filterType === 'job' ? 'Jobs' : 'Courses'}
+                {filterType === 'all' ? 'All' : 'Jobs'}
               </button>
             ))}
 
@@ -170,7 +274,7 @@ export const RecommendationPage: React.FC = () => {
                     <button
                       key={option.value}
                       onClick={() => {
-                        setSortBy(option.value as any);
+                        setSortBy(option.value as 'default' | 'rating' | 'alphabetical');
                         setShowSortDropdown(false);
                       }}
                       className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 
@@ -204,20 +308,8 @@ export const RecommendationPage: React.FC = () => {
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-3 rounded-lg ${
-                    recommendation.type === 'job' 
-                      ? 'bg-blue-100 dark:bg-blue-900' 
-                      : 'bg-green-100 dark:bg-green-900'
-                  }`}>
-                    {recommendation.type === 'job' ? (
-                      <Briefcase className={`w-5 h-5 ${
-                        recommendation.type === 'job' 
-                          ? 'text-blue-600 dark:text-blue-400' 
-                          : 'text-green-600 dark:text-green-400'
-                      }`} />
-                    ) : (
-                      <BookOpen className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    )}
+                  <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900">
+                    <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 
@@ -229,12 +321,9 @@ export const RecommendationPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-lg text-xs font-medium
-                  ${recommendation.type === 'job' 
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
-                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  }`}>
-                  {recommendation.type === 'job' ? 'Job' : 'Course'}
+                <span className="px-3 py-1 rounded-lg text-xs font-medium
+                  bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  Job
                 </span>
               </div>
 
@@ -283,19 +372,51 @@ export const RecommendationPage: React.FC = () => {
               </div>
 
               {/* Action Button */}
-              <button
-                onClick={() => window.open(recommendation.url, '_blank')}
-                className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg 
-                          font-medium transform hover:scale-105 transition-all duration-300
-                          shadow-md hover:shadow-lg text-sm
-                          ${recommendation.type === 'job'
-                            ? 'bg-blue-500 hover:bg-blue-600'
-                            : 'bg-green-500 hover:bg-green-600'
-                          } text-white`}
-              >
-                <span>{recommendation.type === 'job' ? 'Apply Now' : 'Enroll Now'}</span>
-                <ExternalLink className="w-4 h-4" />
-              </button>
+              {hasCooldown(recommendation.id) ? (
+                <button
+                  disabled
+                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg 
+                           font-medium cursor-not-allowed shadow-md text-sm
+                           bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                >
+                  <span>Cooldown: {getCooldownRemaining(recommendation.id)}</span>
+                  <Clock className="w-4 h-4" />
+                </button>
+              ) : hasPassedTest(recommendation.id) ? (
+                <div className="flex flex-col w-full space-y-2">
+                  <button
+                    onClick={() => handleOpenTest(recommendation)}
+                    className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-lg 
+                             font-medium transform hover:scale-105 transition-all duration-300
+                             shadow-md hover:shadow-lg text-sm
+                             bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <span>View Test Results</span>
+                    <AlertTriangle className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => window.open(recommendation.url, '_blank')}
+                    className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-lg 
+                             font-medium transform hover:scale-105 transition-all duration-300
+                             shadow-md hover:shadow-lg text-sm
+                             bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    <span>Apply Now</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleOpenTest(recommendation)}
+                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg 
+                           font-medium transform hover:scale-105 transition-all duration-300
+                           shadow-md hover:shadow-lg text-sm
+                           bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  <span>Take Eligibility Test</span>
+                  <AlertTriangle className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -331,7 +452,7 @@ export const RecommendationPage: React.FC = () => {
             Your Skills Match
           </h2>
           
-          <div className="grid grid-cols-3 gap-4 relative z-10">
+          <div className="grid grid-cols-2 gap-4 relative z-10">
             <div className="text-center p-4 bg-green-50 dark:bg-green-900/30 rounded-xl">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
                 {recommendations.filter(rec => 
@@ -342,18 +463,22 @@ export const RecommendationPage: React.FC = () => {
             </div>
             <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                {recommendations.filter(rec => rec.type === 'job').length}
+                {recommendations.length}
               </div>
-              <div className="text-gray-600 dark:text-gray-400 text-xs">Jobs</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/30 rounded-xl">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                {recommendations.filter(rec => rec.type === 'course').length}
-              </div>
-              <div className="text-gray-600 dark:text-gray-400 text-xs">Courses</div>
+              <div className="text-gray-600 dark:text-gray-400 text-xs">Total Jobs</div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Eligibility Test Modal */}
+      {testIsOpen && selectedJob && (
+        <JobEligibilityTest
+          job={selectedJob}
+          isOpen={testIsOpen}
+          onClose={handleCloseTest}
+          onComplete={handleTestComplete}
+        />
       )}
     </div>
   );

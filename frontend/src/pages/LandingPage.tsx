@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { AuthForms } from '../components/AuthForms';
@@ -6,12 +6,6 @@ import { ArrowRight, Users, BookOpen, Target, Star, CheckCircle, Zap } from 'luc
 
 export const LandingPage: React.FC = () => {
   const [authModal, setAuthModal] = useState<'login' | 'signup' | null>(null);
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const features = [
     {
@@ -58,25 +52,6 @@ export const LandingPage: React.FC = () => {
     { number: '95%', label: 'Success Rate' },
     { number: '24/7', label: 'AI Support' }
   ];
-
-  if (showSplash) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-all duration-500">
-        <div className="flex flex-col items-center space-y-4 animate-fade-in">
-          <div className="mb-2">
-            <Logo size="lg" />
-          </div>
-          <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">K Mentor</div>
-          <div className="mt-4">
-            <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 

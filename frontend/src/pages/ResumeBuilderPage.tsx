@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Download, FileText, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText, Plus, Trash2, Download } from 'lucide-react';
 import { ResumeData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import jsPDF from 'jspdf';
+import { enhancedGenerateResumePDF } from '../utils/enhancedPdfGenerator';
 
 export const ResumeBuilderPage: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -19,17 +19,25 @@ export const ResumeBuilderPage: React.FC = () => {
     education: [],
     skills: user?.skills || [],
     projects: [],
-    experience: []
+    experience: [],
+    customization: {
+      template: 'professional',
+      primaryColor: [59, 130, 246], // Default blue
+      fontFamily: 'helvetica',
+      lineSpacing: 1.15,
+      columnLayout: false
+    }
   });
 
   const steps = [
     { number: 1, title: 'Personal Details' },
     { number: 2, title: 'Education & Skills' },
-    { number: 3, title: 'Review & Generate' }
+    { number: 3, title: 'Customization' },
+    { number: 4, title: 'Review & Generate' }
   ];
 
   const handleNext = () => {
-    if (currentStep < 3) setCurrentStep(currentStep + 1);
+    if (currentStep < 4) setCurrentStep(currentStep + 1);
   };
 
   const handlePrevious = () => {
@@ -37,76 +45,22 @@ export const ResumeBuilderPage: React.FC = () => {
   };
 
   const generatePDF = () => {
-    const doc = new jsPDF();
-    let y = 20;
-
-    // Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text(resumeData.personalDetails.name, 20, y);
-    y += 8;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(resumeData.personalDetails.email, 20, y);
-    if (resumeData.personalDetails.phone) {
-      doc.text(resumeData.personalDetails.phone, 20, y + 4);
-      y += 4;
-    }
-    y += 12;
-
-    // Education
-    if (resumeData.education.length > 0) {
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Education', 20, y);
-      y += 8;
-
-      resumeData.education.forEach(edu => {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text(edu.degree, 20, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`${edu.institution} (${edu.year})`, 20, y + 4);
-        y += 12;
-      });
-    }
-
-    // Skills
-    if (resumeData.skills.length > 0) {
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Skills', 20, y);
-      y += 8;
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(resumeData.skills.join(', '), 20, y);
-      y += 12;
-    }
-
-    // Projects
-    if (resumeData.projects.length > 0) {
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Projects', 20, y);
-      y += 8;
-
-      resumeData.projects.forEach(project => {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text(project.title, 20, y);
-        doc.setFont('helvetica', 'normal');
-        const lines = doc.splitTextToSize(project.description, 170);
-        doc.text(lines, 20, y + 4);
-        y += 4 + (lines.length * 4) + 8;
-      });
-    }
-
-    const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    updateUser({ resumeUrl: pdfUrl });
-    window.open(pdfUrl, '_blank');
+    // Use enhanced PDF generator with the customization options
+    const pdfResult = enhancedGenerateResumePDF(resumeData, {
+      template: resumeData.customization?.template || 'professional',
+      primaryColor: resumeData.customization?.primaryColor || [59, 130, 246],
+      fontFamily: resumeData.customization?.fontFamily || 'helvetica',
+      lineSpacing: resumeData.customization?.lineSpacing || 1.15,
+      columnLayout: resumeData.customization?.columnLayout || false
+    });
+    
+    // Update user with the new PDF URL
+    updateUser({ resumeUrl: pdfResult.url });
+    
+    // Open the PDF in a new tab
+    window.open(pdfResult.url, '_blank');
+    
+    return pdfResult;
   };
 
   const addEducation = () => {
@@ -524,68 +478,297 @@ export const ResumeBuilderPage: React.FC = () => {
           </div>
         )}
 
-        {/* Step 3: Review & Generate */}
+        {/* Step 3: Resume Customization */}
         {currentStep === 3 && (
+          <div className="space-y-6 relative z-10">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Customize Your Resume
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Template Selection */}
+              <div>
+                <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Resume Template
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['professional', 'modern', 'minimalist', 'creative'].map((template) => (
+                    <div 
+                      key={template}
+                      onClick={() => setResumeData(prev => ({
+                        ...prev,
+                        customization: { 
+                          ...prev.customization!,
+                          template: template as any
+                        }
+                      }))}
+                      className={`
+                        cursor-pointer p-3 rounded-lg border-2 transition-all duration-300
+                        ${resumeData.customization?.template === template
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                          : 'border-gray-200 dark:border-gray-700'
+                        }
+                      `}
+                    >
+                      <div className="h-24 flex items-center justify-center bg-white dark:bg-gray-700 rounded-md mb-2">
+                        <span className="text-gray-400 dark:text-gray-500 text-4xl">A</span>
+                      </div>
+                      <p className="text-center text-sm capitalize">{template}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Colors & Fonts */}
+              <div>
+                <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Color & Typography
+                </label>
+                
+                {/* Color Selection */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Primary Color</p>
+                  <div className="flex space-x-3">
+                    {[
+                      [59, 130, 246], // Blue
+                      [34, 197, 94],  // Green
+                      [234, 88, 12],  // Orange
+                      [168, 85, 247], // Purple
+                      [0, 0, 0]       // Black
+                    ].map(([r, g, b], index) => (
+                      <div 
+                        key={index}
+                        onClick={() => setResumeData(prev => ({
+                          ...prev,
+                          customization: { 
+                            ...prev.customization!,
+                            primaryColor: [r, g, b]
+                          }
+                        }))}
+                        className={`
+                          w-8 h-8 rounded-full cursor-pointer transition-all duration-300
+                          ${JSON.stringify(resumeData.customization?.primaryColor) === JSON.stringify([r, g, b])
+                            ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-blue-400'
+                            : ''
+                          }
+                        `}
+                        style={{ backgroundColor: `rgb(${r}, ${g}, ${b})` }}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Font Selection */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Font Family</p>
+                  <select
+                    value={resumeData.customization?.fontFamily || 'helvetica'}
+                    onChange={(e) => setResumeData(prev => ({
+                      ...prev,
+                      customization: { 
+                        ...prev.customization!,
+                        fontFamily: e.target.value
+                      }
+                    }))}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  >
+                    <option value="helvetica">Helvetica (Sans-Serif)</option>
+                    <option value="times">Times (Serif)</option>
+                    <option value="courier">Courier (Monospace)</option>
+                  </select>
+                </div>
+
+                {/* Line Spacing */}
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    Line Spacing
+                    <span className="text-xs text-gray-500 ml-2">
+                      {resumeData.customization?.lineSpacing || 1.15}x
+                    </span>
+                  </p>
+                  <input
+                    type="range"
+                    min="1"
+                    max="2"
+                    step="0.05"
+                    value={resumeData.customization?.lineSpacing || 1.15}
+                    onChange={(e) => setResumeData(prev => ({
+                      ...prev,
+                      customization: { 
+                        ...prev.customization!,
+                        lineSpacing: parseFloat(e.target.value)
+                      }
+                    }))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                  />
+                </div>
+              </div>
+              
+              {/* Layout Options */}
+              <div>
+                <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Layout Options
+                </label>
+                
+                <div className="flex items-center mt-3">
+                  <input
+                    type="checkbox"
+                    id="columnLayout"
+                    checked={resumeData.customization?.columnLayout || false}
+                    onChange={(e) => setResumeData(prev => ({
+                      ...prev,
+                      customization: { 
+                        ...prev.customization!,
+                        columnLayout: e.target.checked
+                      }
+                    }))}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded 
+                             focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 
+                             dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <label htmlFor="columnLayout" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    Use two-column layout (better for skills & education)
+                  </label>
+                </div>
+              </div>
+              
+              {/* ATS Optimization Tips */}
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+                <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-2">ATS Optimization</h3>
+                <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-2 list-disc pl-5">
+                  <li>Your resume is being optimized for Applicant Tracking Systems</li>
+                  <li>Key skills are highlighted for better keyword matching</li>
+                  <li>Clean formatting ensures your content is properly parsed</li>
+                  <li>PDF includes hidden metadata for better indexing</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Review & Generate */}
+        {currentStep === 4 && (
           <div className="space-y-6 relative z-10">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
               Review & Generate Resume
             </h2>
 
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
-                Resume Preview
-              </h3>
-              
-              <div className="space-y-3 text-sm">
-                <div>
-                  <h4 className="font-medium text-gray-800 dark:text-gray-200">
-                    {resumeData.personalDetails.name}
-                  </h4>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {resumeData.personalDetails.email} | {resumeData.personalDetails.phone}
-                  </p>
-                </div>
-
-                {resumeData.education.length > 0 && (
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg h-full">
+                <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
+                  Resume Preview
+                </h3>
+                
+                <div className="space-y-3 text-sm">
                   <div>
-                    <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Education</h4>
-                    {resumeData.education.map((edu, index) => (
-                      <div key={index} className="mb-1">
-                        <p className="font-medium text-sm">{edu.degree}</p>
-                        <p className="text-gray-600 dark:text-gray-400 text-xs">
-                          {edu.institution} ({edu.year})
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {resumeData.skills.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Skills</h4>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs">
-                      {resumeData.skills.filter(skill => skill.trim()).join(', ')}
+                    <h4 className="font-medium text-gray-800 dark:text-gray-200">
+                      {resumeData.personalDetails.name}
+                    </h4>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {resumeData.personalDetails.email} | {resumeData.personalDetails.phone}
                     </p>
                   </div>
-                )}
 
-                {resumeData.projects.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Projects</h4>
-                    {resumeData.projects.map((project, index) => (
-                      <div key={index} className="mb-2">
-                        <p className="font-medium text-sm">{project.title}</p>
-                        <p className="text-gray-600 dark:text-gray-400 text-xs">
-                          {project.description}
-                        </p>
+                  {resumeData.education.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Education</h4>
+                      {resumeData.education.map((edu, index) => (
+                        <div key={index} className="mb-1">
+                          <p className="font-medium text-sm">{edu.degree}</p>
+                          <p className="text-gray-600 dark:text-gray-400 text-xs">
+                            {edu.institution} ({edu.year})
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {resumeData.skills.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Skills</h4>
+                      <p className="text-gray-600 dark:text-gray-400 text-xs">
+                        {resumeData.skills.filter(skill => skill.trim()).join(', ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {resumeData.projects.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Projects</h4>
+                      {resumeData.projects.map((project, index) => (
+                        <div key={index} className="mb-2">
+                          <p className="font-medium text-sm">{project.title}</p>
+                          <p className="text-gray-600 dark:text-gray-400 text-xs">
+                            {project.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg h-full">
+                <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
+                  Selected Template: <span className="capitalize">{resumeData.customization?.template || 'Professional'}</span>
+                </h3>
+                
+                <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-800 h-64 relative overflow-hidden">
+                  {/* Template Preview */}
+                  <div className={`
+                    w-full h-full flex flex-col
+                    ${resumeData.customization?.template === 'modern' ? 'items-center' : ''}
+                  `}>
+                    {/* Header */}
+                    <div className="w-full mb-2">
+                      <div 
+                        className="h-6 mb-1" 
+                        style={{
+                          backgroundColor: `rgba(${resumeData.customization?.primaryColor?.[0] || 59}, ${resumeData.customization?.primaryColor?.[1] || 130}, ${resumeData.customization?.primaryColor?.[2] || 246}, 0.1)`
+                        }}
+                      ></div>
+                      <div className="w-1/2 h-2 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    </div>
+                    
+                    {/* Content Layout */}
+                    <div className={`flex w-full flex-1 ${resumeData.customization?.columnLayout ? 'space-x-2' : 'flex-col space-y-2'}`}>
+                      {/* Left column / Section 1 */}
+                      <div className={`${resumeData.customization?.columnLayout ? 'w-1/3' : 'w-full'} flex flex-col space-y-1`}>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2 mb-1"></div>
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="h-2 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
+                        ))}
                       </div>
-                    ))}
+                      
+                      {/* Right column / Section 2 */}
+                      <div className={`${resumeData.customization?.columnLayout ? 'w-2/3' : 'w-full'} flex flex-col space-y-1`}>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2 mb-1"></div>
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <div key={i} className="h-2 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                )}
+                  
+                  {/* Badge for ATS Optimization */}
+                  <div className="absolute top-2 right-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs py-1 px-2 rounded">
+                    ATS Optimized
+                  </div>
+                </div>
+                
+                <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                  <p className="mb-1">Customization summary:</p>
+                  <ul className="list-disc pl-5 text-xs">
+                    <li>Font: {resumeData.customization?.fontFamily || 'Helvetica'}</li>
+                    <li>Line spacing: {resumeData.customization?.lineSpacing || 1.15}x</li>
+                    <li>Layout: {resumeData.customization?.columnLayout ? 'Two-column' : 'Single-column'}</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center space-x-4">
               <button
                 onClick={generatePDF}
                 className="flex items-center space-x-2 px-6 py-3 bg-green-500 text-white 
@@ -594,6 +777,20 @@ export const ResumeBuilderPage: React.FC = () => {
               >
                 <FileText className="w-4 h-4" />
                 <span>Generate Resume PDF</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  const pdfResult = generatePDF();
+                  // Trigger the download
+                  pdfResult.download();
+                }}
+                className="flex items-center space-x-2 px-6 py-3 bg-blue-500 text-white 
+                         rounded-lg font-medium hover:bg-blue-600 transform hover:scale-105 
+                         transition-all duration-300 shadow-lg"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Resume</span>
               </button>
             </div>
           </div>
@@ -613,7 +810,7 @@ export const ResumeBuilderPage: React.FC = () => {
             <span>Previous</span>
           </button>
 
-          {currentStep < 3 && (
+          {currentStep < 4 && (
             <button
               onClick={handleNext}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white 

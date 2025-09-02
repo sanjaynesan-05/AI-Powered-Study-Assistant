@@ -28,6 +28,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'default.jpg',
     },
+    collegeId: {
+      type: String,
+      sparse: true,  // This allows multiple null values
+      default: function() {
+        return `user_${Date.now()}`; // Generate a unique default value
+      }
+    },
     learningPaths: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'LearningPath',

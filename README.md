@@ -18,6 +18,7 @@ A comprehensive AI-powered mentoring platform designed to provide personalized g
 
 - **AI Mentor Conversations**: Engage with an AI mentor for personalized guidance on various topics.
 - **Career Guidance**: Receive career advice tailored to your skills and interests.
+- **Secure Authentication**: Full authentication system with JWT tokens, protected routes, and database storage.
 - **Learning Path Suggestions**: Get customized learning paths based on your career goals.
 - **Resume Analysis**: Get professional feedback on your resume.
 - **Resume Builder**: Create professional resumes with guided assistance.
@@ -120,6 +121,7 @@ A comprehensive AI-powered mentoring platform designed to provide personalized g
 Detailed documentation is available in the [docs](./docs) directory:
 
 - [API Documentation](./docs/API_DOCS.md)
+- [Authentication System](./docs/AUTH_SYSTEM.md)
 - [User Guide](./docs/USER_GUIDE.md)
 - [Development Guide](./docs/DEVELOPMENT_GUIDE.md)
 - [Database Schema](./docs/DATABASE_SCHEMA.md)

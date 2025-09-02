@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Auth Test</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    pre {
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      overflow: auto;
+    }
+    .container {
+      margin-top: 20px;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #f9f9f9;
+    }
+    h1 {
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Auth Test</h1>
+  
+  <div class="container">
+    <p>Current page URL: <strong id="currentUrl"></strong></p>
+    <p>Window location origin: <strong id="originUrl"></strong></p>
+    <p>This is what should be added to the Google Cloud Console as an authorized JavaScript origin.</p>
+  </div>
+
+  <div class="container">
+    <p>Testing Google Sign-In with Client ID:</p>
+    <pre id="clientId">42367692842-15lt6qvg6t22f49rgprq5ttode2pbr5p.apps.googleusercontent.com</pre>
+    
+    <div id="g_id_onload"
+       data-client_id="42367692842-15lt6qvg6t22f49rgprq5ttode2pbr5p.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+  </div>
+  
+  <div class="result">
+    <h3>Authentication Result:</h3>
+    <pre id="authResult">Not authenticated yet</pre>
+  </div>
+
+  <script>
+    document.getElementById('currentUrl').textContent = window.location.href;
+    document.getElementById('originUrl').textContent = window.location.origin;
+    
+    function handleCredentialResponse(response) {
+      document.getElementById('authResult').textContent = 'Success! Google authentication worked!\n\nCredential: ' + 
+        response.credential.substring(0, 20) + '...';
+      
+      console.log("Google Auth Response:", response);
+    }
+
+    window.onerror = function(message, source, lineno, colno, error) {
+      document.getElementById('authResult').textContent = 'Error: ' + message;
+      return true;
+    };
+  </script>
+</body>
+</html>
