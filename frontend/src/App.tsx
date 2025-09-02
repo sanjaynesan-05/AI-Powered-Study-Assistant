@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -8,50 +8,89 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AIMentorPage } from './pages/AIMentorPage';
 import { ResumeBuilderPage } from './pages/ResumeBuilderPage';
 import { LearningPathPage } from './pages/LearningPathPage';
+import { ContinueLearningPage } from './pages/ContinueLearningPage';
 import { RecommendationPage } from './pages/RecommendationPage';
 
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  
+  console.log('Protected Route Check - User:', user ? 'Authenticated' : 'Not Authenticated');
+  
   if (!user) {
+    console.log('Redirecting to landing page - user not authenticated');
     return <Navigate to="/" replace />;
   }
+  
+  console.log('User is authenticated, rendering protected content');
   return <>{children}</>;
 };
 
-const AppRoutes: React.FC = () => {
+// AppContent component to handle routing and authentication state
+const AppContent: React.FC = () => {
+  const { user, loading } = useAuth();
+  
+  // While AuthContext is checking for a saved user, show nothing
+  // This prevents any flash of content before authentication is determined
+  if (loading) {
+    return null;
+  }
+
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/ai-mentor" element={<AIMentorPage />} />
-        <Route path="/resume-builder" element={<ResumeBuilderPage />} />
-        <Route path="/learning-path" element={<LearningPathPage />} />
-        <Route path="/recommendation" element={<RecommendationPage />} />
-      </Route>
-      {/* Catch-all: redirect unknown routes to landing */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Router>
+      <div className="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-gray-900">
+        <Routes>
+          {/* Redirect to dashboard if logged in, otherwise show landing page */}
+          <Route path="/" element={user ? <Navigate to="/profile" replace /> : <LandingPage />} />
+          
+          {/* Protected routes with Layout */}
+          <Route element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/ai-mentor" element={<AIMentorPage />} />
+            <Route path="/resume-builder" element={<ResumeBuilderPage />} />
+            <Route path="/learning-path" element={<LearningPathPage />} />
+            <Route path="/continue-learning" element={<ContinueLearningPage />} />
+            <Route path="/recommendation" element={<RecommendationPage />} />
+          </Route>
+          {/* Catch-all: redirect unknown routes to landing */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </Router>
   );
 };
 
 function App() {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // Add a loading screen for better user experience
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 1500); // Show loading for 1.5 seconds
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex items-center justify-center w-full h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-violet-500">
+        <div className="text-center">
+          <h1 className="mb-4 text-4xl font-bold text-white">AI Mentor</h1>
+          <div className="w-16 h-16 mx-auto border-t-4 border-r-4 border-white rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-            <AppRoutes />
-          </div>
-        </Router>
+        <AppContent />
       </AuthProvider>
     </ThemeProvider>
   );

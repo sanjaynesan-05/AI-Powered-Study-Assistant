@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Google Login Button Customization */
+.google-login-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.google-login-wrapper div {
+  width: 280px !important;
+  border-radius: 8px !important;
+}
+
+/* Fix for COOP issues with Google Auth */
+iframe {
+  border: none;
+}

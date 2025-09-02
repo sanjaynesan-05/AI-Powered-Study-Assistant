@@ -42,7 +42,7 @@ const learningPaths = [
   {
     title: 'Become a React Developer',
     description: 'Learn everything you need to become a React developer',
-    category: 'Programming',
+    category: 'Frontend Development',
     difficulty: 'Intermediate',
     estimatedTime: 40,
     steps: [

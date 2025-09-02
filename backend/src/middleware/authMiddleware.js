@@ -20,17 +20,27 @@ const protect = async (req, res, next) => {
       // Get user from the token (excluding password)
       req.user = await User.findById(decoded.id).select('-password');
 
+      if (!req.user) {
+        res.status(401);
+        throw new Error('User not found with this token');
+      }
+
       next();
     } catch (error) {
-      console.error(error);
+      console.error('Auth middleware error:', error);
       res.status(401);
-      throw new Error('Not authorized, token failed');
+      
+      if (error.name === 'JsonWebTokenError') {
+        throw new Error('Invalid token');
+      } else if (error.name === 'TokenExpiredError') {
+        throw new Error('Token expired');
+      } else {
+        throw new Error('Not authorized, token failed');
+      }
     }
-  }
-
-  if (!token) {
+  } else {
     res.status(401);
-    throw new Error('Not authorized, no token');
+    throw new Error('Not authorized, no token provided');
   }
 };
 
@@ -44,4 +54,26 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+// Middleware to ensure a user can only access their own data
+const ownerOnly = (req, res, next) => {
+  // The userId could be in params, query, or body
+  const resourceUserId = req.params.userId || req.query.userId || req.body.userId;
+
+  // If no userId is provided in the request, continue (other middlewares will handle it)
+  if (!resourceUserId) {
+    return next();
+  }
+
+  // Check if the authenticated user is accessing their own data
+  if (req.user._id.toString() === resourceUserId.toString()) {
+    next();
+  } else if (req.user.role === 'admin') {
+    // Admins can access any user's data
+    next();
+  } else {
+    res.status(403);
+    throw new Error('Not authorized to access this data');
+  }
+};
+
+module.exports = { protect, admin, ownerOnly };

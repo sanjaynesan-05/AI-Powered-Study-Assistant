@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   registerUser,
   loginUser,
+  googleLoginUser,
   getUserProfile,
   updateUserProfile,
   getUsers,
@@ -14,8 +15,23 @@ router.route('/')
   .post(registerUser)
   .get(protect, admin, getUsers);
 
-// Login route
+// Login routes
 router.post('/login', loginUser);
+router.post('/google-login', googleLoginUser);
+
+// Test route for Google auth setup
+router.get('/google-auth-test', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    message: 'Google auth test route is working',
+    googleClientId: process.env.GOOGLE_CLIENT_ID ? 'configured' : 'missing',
+    requestOrigin: req.headers.origin || 'No origin header',
+    corsSettings: {
+      allowedOrigins: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'],
+      currentOrigin: req.headers.origin
+    }
+  });
+});
 
 // User profile routes
 router.route('/profile')

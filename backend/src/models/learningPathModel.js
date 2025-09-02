@@ -14,7 +14,7 @@ const learningPathSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, 'Please provide a category'],
-      enum: ['Programming', 'Data Science', 'Design', 'Business', 'Other'],
+      enum: ['Frontend Development', 'Backend Development', 'Fullstack Development', 'Data Science', 'Cybersecurity'],
     },
     difficulty: {
       type: String,
