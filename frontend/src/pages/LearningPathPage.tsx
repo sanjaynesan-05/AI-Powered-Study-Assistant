@@ -121,12 +121,12 @@ export const LearningPathPage: React.FC = () => {
         {learningPaths.map((path) => (
           <div
             key={path.id}
-            className="relative overflow-hidden transition-all duration-300 transform border shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl hover:shadow-xl hover:scale-105 border-gray-200/50 dark:border-gray-700/50 group"
+            className="relative overflow-hidden transition-all duration-300 transform border shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl hover:shadow-xl hover:scale-105 border-gray-200/50 dark:border-gray-700/50 group w-80 h-64 mx-auto flex flex-col"
           >
             {/* Shining effect */}
             <div className="absolute inset-0 transition-transform duration-1000 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full" />
             
-            <div className="relative z-10 p-5">
+            <div className="relative z-10 p-5 flex flex-col flex-1">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="mb-2 text-lg font-bold text-gray-800 transition-colors duration-300 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
@@ -151,7 +151,7 @@ export const LearningPathPage: React.FC = () => {
                 </div>
               </div>
 
-              <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400 flex-1">
                 {path.description}
               </p>
 
@@ -168,41 +168,7 @@ export const LearningPathPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Stats Section */}
-      <div className="relative p-6 overflow-hidden transition-all duration-300 border shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl group">
-        <div className="absolute inset-0 transition-opacity duration-300 opacity-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 group-hover:opacity-100" />
-        
-        <h2 className="relative z-10 mb-4 text-xl font-bold text-gray-800 dark:text-gray-200">
-          Learning Statistics
-        </h2>
-        
-        <div className="relative z-10 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div className="p-4 text-center bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-            <div className="mb-1 text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {learningPaths.filter(path => path.progress > 0).length}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">Active</div>
-          </div>
-          <div className="p-4 text-center bg-green-50 dark:bg-green-900/30 rounded-xl">
-            <div className="mb-1 text-2xl font-bold text-green-600 dark:text-green-400">
-              {learningPaths.reduce((sum, path) => sum + path.completedLessons, 0)}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">Lessons</div>
-          </div>
-          <div className="p-4 text-center bg-purple-50 dark:bg-purple-900/30 rounded-xl">
-            <div className="mb-1 text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {Math.round(learningPaths.reduce((sum, path) => sum + path.progress, 0) / learningPaths.length)}%
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">Average</div>
-          </div>
-          <div className="p-4 text-center bg-orange-50 dark:bg-orange-900/30 rounded-xl">
-            <div className="mb-1 text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {learningPaths.filter(path => path.progress === 100).length}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">Completed</div>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };

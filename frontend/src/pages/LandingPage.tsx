@@ -61,15 +61,8 @@ export const LandingPage: React.FC = () => {
                         bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50">
         <Logo size="md" />
         
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 w-full justify-end">
           <ThemeToggle />
-          <button
-            onClick={() => setAuthModal('signup')}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium 
-                     hover:bg-blue-600 transform hover:scale-105 transition-all duration-300"
-          >
-            Sign Up
-          </button>
           <button
             onClick={() => setAuthModal('login')}
             className="px-6 py-2 border border-blue-500 text-blue-600 dark:text-blue-400 
@@ -92,9 +85,8 @@ export const LandingPage: React.FC = () => {
           Get personalized mentorship, build impressive resumes, and discover learning paths 
           that align with your career goals.
         </p>
-
         <button
-          onClick={() => setAuthModal('signup')}
+          onClick={() => setAuthModal('login')}
           className="group flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 
                    text-white rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 
                    transform hover:scale-110 transition-all duration-300 shadow-xl hover:shadow-2xl"
@@ -219,7 +211,7 @@ export const LandingPage: React.FC = () => {
               Join thousands of students and professionals who are already succeeding with K Mentor
             </p>
             <button
-              onClick={() => setAuthModal('signup')}
+              onClick={() => setAuthModal('login')}
               className="px-8 py-3 bg-white text-blue-600 rounded-lg font-bold 
                        hover:bg-gray-100 transform hover:scale-105 transition-all duration-300
                        shadow-lg hover:shadow-xl relative z-10"
@@ -230,8 +222,14 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Auth Modals */}
-      <AuthForms type={authModal} onClose={() => setAuthModal(null)} />
+      {/* Auth Modals - responsive and prevent overflow */}
+      {authModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-2 overflow-y-auto">
+          <div className="w-full max-w-md mx-auto">
+            <AuthForms type={authModal} onClose={() => setAuthModal(null)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

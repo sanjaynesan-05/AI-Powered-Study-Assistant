@@ -106,19 +106,19 @@ export const ResumeBuilderPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+  <div className="max-w-4xl mx-auto space-y-6 px-2 sm:px-4">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white 
-                     hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
+  <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-4 sm:p-6 text-white 
+         hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <h1 className="text-2xl font-bold mb-1 relative z-10">📄 Resume Builder</h1>
         <p className="text-blue-100 relative z-10">Create your professional resume in 3 steps</p>
       </div>
         
       {/* Progress Bar */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl p-6 shadow-lg 
-                     border border-gray-200/50 dark:border-gray-700/50">
-        <div className="flex items-center justify-between">
+  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-lg 
+         border border-gray-200/50 dark:border-gray-700/50 overflow-x-auto">
+    <div className="flex items-center justify-between min-w-[350px] sm:min-w-0">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold
@@ -159,7 +159,7 @@ export const ResumeBuilderPage: React.FC = () => {
               Personal Details
             </h2>
             
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
                   Full Name *
@@ -290,7 +290,7 @@ export const ResumeBuilderPage: React.FC = () => {
               </div>
 
               {resumeData.education.map((edu, index) => (
-                <div key={index} className="grid md:grid-cols-2 gap-4 p-4 border border-gray-200 
+                <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-gray-200 
                                           dark:border-gray-700 rounded-lg mb-4 relative group
                                           hover:shadow-md transition-all duration-300">
                   <button
@@ -368,7 +368,7 @@ export const ResumeBuilderPage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {resumeData.skills.map((skill, index) => (
                   <div key={index} className="relative group">
                     <input
@@ -446,7 +446,7 @@ export const ResumeBuilderPage: React.FC = () => {
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
                              bg-white dark:bg-gray-700 text-gray-900 dark:text-white h-20 text-sm"
                   />
-                  <div className="grid md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <input
                       type="text"
                       placeholder="Technologies Used"
@@ -485,7 +485,7 @@ export const ResumeBuilderPage: React.FC = () => {
               Customize Your Resume
             </h2>
             
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Template Selection */}
               <div>
                 <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -654,7 +654,7 @@ export const ResumeBuilderPage: React.FC = () => {
               Review & Generate Resume
             </h2>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg h-full">
                 <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
                   Resume Preview
@@ -768,26 +768,25 @@ export const ResumeBuilderPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-center space-x-4">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
               <button
                 onClick={generatePDF}
-                className="flex items-center space-x-2 px-6 py-3 bg-green-500 text-white 
+                className="flex items-center space-x-2 px-4 py-3 sm:px-6 bg-green-500 text-white 
                          rounded-lg font-medium hover:bg-green-600 transform hover:scale-105 
-                         transition-all duration-300 shadow-lg"
+                         transition-all duration-300 shadow-lg w-full sm:w-auto"
               >
                 <FileText className="w-4 h-4" />
                 <span>Generate Resume PDF</span>
               </button>
-              
               <button
                 onClick={() => {
                   const pdfResult = generatePDF();
                   // Trigger the download
                   pdfResult.download();
                 }}
-                className="flex items-center space-x-2 px-6 py-3 bg-blue-500 text-white 
+                className="flex items-center space-x-2 px-4 py-3 sm:px-6 bg-blue-500 text-white 
                          rounded-lg font-medium hover:bg-blue-600 transform hover:scale-105 
-                         transition-all duration-300 shadow-lg"
+                         transition-all duration-300 shadow-lg w-full sm:w-auto"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Resume</span>
@@ -797,14 +796,14 @@ export const ResumeBuilderPage: React.FC = () => {
         )}
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8 relative z-10">
+        <div className="flex flex-col sm:flex-row justify-between mt-8 gap-3 sm:gap-0 relative z-10">
           <button
             onClick={handlePrevious}
             disabled={currentStep === 1}
             className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 
                      rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300
                      disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 
-                     disabled:transform-none font-medium text-sm"
+                     disabled:transform-none font-medium text-sm w-full sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Previous</span>
@@ -815,7 +814,7 @@ export const ResumeBuilderPage: React.FC = () => {
               onClick={handleNext}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white 
                        rounded-lg hover:bg-blue-600 transform hover:scale-105 
-                       transition-all duration-300 font-medium text-sm"
+                       transition-all duration-300 font-medium text-sm w-full sm:w-auto"
             >
               <span>Next</span>
               <ArrowRight className="w-4 h-4" />

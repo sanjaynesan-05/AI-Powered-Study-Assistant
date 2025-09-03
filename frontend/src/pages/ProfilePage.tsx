@@ -58,6 +58,21 @@ export const ProfilePage: React.FC = () => {
     navigate('/resume-builder');
   };
 
+  // Handle PDF upload for resume
+  const handleResumeUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const pdfUrl = e.target?.result as string;
+        updateUser({ resumeUrl: pdfUrl });
+      };
+      reader.readAsDataURL(file);
+    } else {
+      alert('Please select a PDF file.');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
@@ -314,29 +329,36 @@ export const ProfilePage: React.FC = () => {
         <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 relative z-10">📄 My Resume</h3>
         
         {user?.resumeUrl ? (
-          <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/30 
-                         rounded-xl border border-green-200 dark:border-green-700 relative z-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-green-50 dark:bg-green-900/30 \
+                         rounded-xl border border-green-200 dark:border-green-700 relative z-10 gap-3">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-green-500 rounded-lg">
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div>
                 <p className="font-medium text-gray-800 dark:text-gray-200">My Resume.pdf</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Generated via Resume Builder</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Generated or uploaded</p>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => window.open(user.resumeUrl, '_blank')}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
-                         font-medium transform hover:scale-105 transition-all duration-300 text-sm"
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transform hover:scale-105 transition-all duration-300"
               >
                 View
               </button>
-              <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                               hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300
-                               transform hover:scale-105 font-medium text-sm">
+              <a
+                href={user.resumeUrl}
+                download="My_Resume.pdf"
+                className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 text-center text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800"
+              >
                 Download
+              </a>
+              <button
+                onClick={() => updateUser({ resumeUrl: undefined })}
+                className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transform hover:scale-105 transition-all duration-300"
+              >
+                Delete
               </button>
             </div>
           </div>
@@ -347,49 +369,26 @@ export const ProfilePage: React.FC = () => {
               No resume found
             </h4>
             <p className="text-gray-500 dark:text-gray-500 mb-4 text-sm">
-              Create a professional resume using our Resume Builder
+              Create a professional resume using our Resume Builder or upload your own PDF.
             </p>
-            <button 
-              onClick={handleCreateResume}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg font-medium 
-                       hover:bg-blue-600 transform hover:scale-105 transition-all duration-300"
-            >
-              Create Resume
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button 
+                onClick={handleCreateResume}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg font-medium 
+                         hover:bg-blue-600 transform hover:scale-105 transition-all duration-300"
+              >
+                Create Resume
+              </button>
+              <label className="px-6 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transform hover:scale-105 transition-all duration-300 cursor-pointer flex items-center gap-2">
+                <Upload className="w-4 h-4" /> Upload
+                <input type="file" accept="application/pdf" onChange={handleResumeUpload} className="hidden" />
+              </label>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Statistics Section */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl p-6 shadow-lg 
-                     border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl 
-                     transition-all duration-300 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 
-                       opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 relative z-10">📊 Statistics</h3>
-        
-        <div className="grid grid-cols-3 gap-4 relative z-10">
-          <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-              {user?.skills?.length || 0}
-            </div>
-            <div className="text-gray-600 dark:text-gray-400 text-xs">Skills</div>
-          </div>
-          <div className="text-center p-4 bg-green-50 dark:bg-green-900/30 rounded-xl">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
-              {user?.resumeUrl ? '1' : '0'}
-            </div>
-            <div className="text-gray-600 dark:text-gray-400 text-xs">Resume</div>
-          </div>
-          <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/30 rounded-xl">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-              85%
-            </div>
-            <div className="text-gray-600 dark:text-gray-400 text-xs">Complete</div>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };

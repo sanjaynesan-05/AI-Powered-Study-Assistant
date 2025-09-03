@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 
 interface AuthFormsProps {
   type: 'login' | 'signup' | null;
@@ -12,11 +12,47 @@ interface AuthFormsProps {
 
 export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
   const [formType, setFormType] = useState<'login' | 'signup'>(type || 'login');
+
+  // Sync formType with type prop
+  React.useEffect(() => {
+    if (type && type !== formType) {
+      setFormType(type);
+    }
+  }, [type]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const { login, signup, googleLogin } = useAuth();
+  const googleLoginHandler = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const credential = tokenResponse.access_token;
+        const success = await googleLogin(credential);
+        if (success) {
+          setShowSuccess(true);
+          navigate('/profile');
+          setTimeout(() => {
+            setShowSuccess(false);
+            onClose();
+          }, 1200);
+        } else {
+          setError('Google login failed. Please try again.');
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          setError('Google login failed: ' + (err.message || 'Unknown error'));
+        } else {
+          setError('Google login failed: Unknown error');
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => setError('Google login failed. Please try again.'),
+    flow: 'implicit',
+  });
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -289,55 +325,16 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
         </div>
 
         <div className="flex justify-center mt-4">
-          <div className="google-login-wrapper">
-            <GoogleLogin
-              onSuccess={(credentialResponse) => {
-                if (credentialResponse.credential) {
-                  console.log("Google auth successful, processing...");
-                  setLoading(true);
-                  googleLogin(credentialResponse.credential)
-                    .then((success) => {
-                      if (success) {
-                        console.log("Google login complete, preparing to navigate");
-                        setShowSuccess(true);
-                        
-                        // Force navigation immediately and then show success
-                        console.log("Navigating to profile page...");
-                        navigate('/profile');
-                        
-                        setTimeout(() => {
-                          console.log("Cleanup after navigation");
-                          setShowSuccess(false);
-                          onClose();
-                        }, 1200);
-                      } else {
-                        console.error("Google login failed - no success");
-                        setError('Google login failed. Please try again.');
-                      }
-                    })
-                    .catch((err) => {
-                      console.error('Google login error:', err);
-                      setError('Google login failed: ' + (err.message || 'Unknown error'));
-                    })
-                    .finally(() => {
-                      setLoading(false);
-                    });
-                }
-              }}
-              onError={() => {
-                console.error('Google login error occurred');
-                setError('Google login failed. Please try again.');
-              }}
-              useOneTap={false}
-              theme="outline"
-              size="large"
-              text="continue_with"
-              shape="rectangular"
-              width="280"
-              locale="en"
-              cancel_on_tap_outside={true}
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => googleLoginHandler()}
+            disabled={loading}
+            className="flex items-center justify-center w-full px-4 py-3 font-semibold bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition text-gray-700 disabled:opacity-60"
+            style={{ height: 48 }}
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
+            <span className="font-medium">Sign in with Google</span>
+          </button>
         </div>
 
         <div className="mt-6 text-center">
