@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 
 interface AuthFormsProps {
   type: 'login' | 'signup' | null;
@@ -24,35 +24,38 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const { login, signup, googleLogin } = useAuth();
-  const googleLoginHandler = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setLoading(true);
-      try {
-        const credential = tokenResponse.access_token;
-        const success = await googleLogin(credential);
-        if (success) {
-          setShowSuccess(true);
-          navigate('/profile');
-          setTimeout(() => {
-            setShowSuccess(false);
-            onClose();
-          }, 1200);
-        } else {
-          setError('Google login failed. Please try again.');
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          setError('Google login failed: ' + (err.message || 'Unknown error'));
-        } else {
-          setError('Google login failed: Unknown error');
-        }
-      } finally {
+  // Google One Tap/GoogleLogin handler
+  const handleGoogleLoginSuccess = async (credentialResponse: { credential?: string }) => {
+    setLoading(true);
+    try {
+      const credential = credentialResponse.credential;
+      if (!credential) {
+        setError('Google login failed: No credential received.');
         setLoading(false);
+        return;
       }
-    },
-    onError: () => setError('Google login failed. Please try again.'),
-    flow: 'implicit',
-  });
+      const success = await googleLogin(credential);
+      if (success) {
+        setShowSuccess(true);
+        navigate('/profile');
+        setTimeout(() => {
+          setShowSuccess(false);
+          onClose();
+        }, 1200);
+      } else {
+        setError('Google login failed. Please try again.');
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        setError('Google login failed: ' + (err.message || 'Unknown error'));
+      } else {
+        setError('Google login failed: Unknown error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleGoogleLoginError = () => setError('Google login failed. Please try again.');
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -325,16 +328,19 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
         </div>
 
         <div className="flex justify-center mt-4">
-          <button
-            type="button"
-            onClick={() => googleLoginHandler()}
-            disabled={loading}
-            className="flex items-center justify-center w-full px-4 py-3 font-semibold bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition text-gray-700 disabled:opacity-60"
-            style={{ height: 48 }}
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
-            <span className="font-medium">Sign in with Google</span>
-          </button>
+          <div style={{ width: '100%' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={handleGoogleLoginError}
+              useOneTap
+              theme="outline"
+              size="large"
+              shape="rectangular"
+              text="signin_with"
+              width="100%"
+              // The button will fill the parent div, which matches the login button's width
+            />
+          </div>
         </div>
 
         <div className="mt-6 text-center">
