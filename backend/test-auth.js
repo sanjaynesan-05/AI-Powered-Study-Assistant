@@ -5,7 +5,7 @@ require('dotenv').config();
 // Connect to MongoDB
 async function connectDB() {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
@@ -28,14 +28,11 @@ async function createTestUser() {
       return existingUser;
     }
     
-    // Create a new test user
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('password123', salt);
-    
+    // Create a new test user (don't pre-hash, let the model handle it)
     const user = await User.create({
       name: 'Test User',
       email: 'test@example.com',
-      password: hashedPassword,
+      password: 'password123', // Plain text, model will hash it
     });
     
     console.log('Test user created:', user.email);

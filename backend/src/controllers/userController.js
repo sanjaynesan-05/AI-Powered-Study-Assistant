@@ -1,6 +1,5 @@
 const User = require('../models/userModel');
 const validator = require('validator');
-const { OAuth2Client } = require('google-auth-library');
 
 // @desc    Register a new user
 // @route   POST /api/users
@@ -91,95 +90,6 @@ const registerUser = async (req, res, next) => {
       message: error.message,
       stack: process.env.NODE_ENV === 'production' ? null : error.stack
     });
-  }
-};
-
-// @desc    Login user with Google
-// @route   POST /api/users/google-login
-// @access  Public
-const googleLoginUser = async (req, res, next) => {
-  try {
-    console.log('Google login request received');
-    const { credential } = req.body;
-
-    console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'defined' : 'undefined');
-
-    if (!credential) {
-      res.status(400);
-      throw new Error('Google credential is required');
-    }
-
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      console.error('Missing GOOGLE_CLIENT_ID environment variable');
-      res.status(500);
-      throw new Error('Server configuration error with Google authentication');
-    }
-
-    // Create a Google OAuth client
-    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-    // Verify the Google token
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    }).catch(err => {
-      console.error('Google token verification error:', err);
-      res.status(401);
-      throw new Error('Failed to verify Google token: ' + err.message);
-    });
-
-    const payload = ticket.getPayload();
-    
-    if (!payload) {
-      res.status(400);
-      throw new Error('Invalid Google credential');
-    }
-
-    const { email, name, picture, sub } = payload;
-    
-    // Check if user exists
-    let user = await User.findOne({ email });
-
-    if (!user) {
-      try {
-        // Create a new user if it doesn't exist - don't include collegeId field at all
-        user = await User.create({
-          name,
-          email,
-          password: `google_${sub}_${Date.now()}`, // Create a secure random password
-          profilePicture: picture
-        });
-      } catch (createError) {
-        console.error('Error creating user:', createError.message);
-        // If there's still a duplicate key error, handle it more generically
-        if (createError.code === 11000) {
-          // Add a timestamp to ensure uniqueness for any field causing issues
-          const timestamp = Date.now();
-          user = await User.create({
-            name: `${name}_${timestamp}`,
-            email: createError.message.includes('email') ? `${email.split('@')[0]}_${timestamp}@${email.split('@')[1]}` : email,
-            password: `google_${sub}_${timestamp}`,
-            profilePicture: picture
-          });
-        } else {
-          // Re-throw if it's a different error
-          throw createError;
-        }
-      }
-    }
-
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      profilePicture: user.profilePicture || picture,
-      token: user.generateAuthToken(),
-    });
-  } catch (error) {
-    console.error('Google login error:', error.message);
-    res.status(401);
-    next(error);
   }
 };
 
@@ -303,7 +213,6 @@ const getUsers = async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
-  googleLoginUser,
   getUserProfile,
   updateUserProfile,
   getUsers,

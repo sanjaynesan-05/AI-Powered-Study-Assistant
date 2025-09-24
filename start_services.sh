@@ -10,4 +10,4 @@ gnome-terminal -- bash -c "cd frontend && npm run dev; exec bash" &
 
 echo "AI Mentor Platform is starting up!"
 echo "Backend will be available at http://localhost:5000"
-echo "Frontend will be available at http://localhost:5173"
+echo "Frontend will be available at http://localhost:3000"

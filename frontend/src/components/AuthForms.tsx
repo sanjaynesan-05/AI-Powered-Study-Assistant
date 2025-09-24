@@ -337,7 +337,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
               size="large"
               shape="rectangular"
               text="signin_with"
-              width="100%"
+              width={400}
               // The button will fill the parent div, which matches the login button's width
             />
           </div>

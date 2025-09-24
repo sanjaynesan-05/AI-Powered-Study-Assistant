@@ -16,30 +16,25 @@ const app = express();
 // Middleware
 app.use(express.json());
 
-// CORS configuration - single approach to avoid conflicts
+// Updated CORS configuration to match frontend origin
 app.use((req, res, next) => {
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3001'];
   const origin = req.headers.origin;
-  
-  // Set CORS headers
+
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
   } else {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000'); // Default
+    res.header('Access-Control-Allow-Origin', 'http://127.0.0.1:3001'); // Default to match frontend
   }
-  
+
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  // Set relaxed COOP policy for Google Auth
-  res.header('Cross-Origin-Opener-Policy', 'unsafe-none');
-  
-  // Handle OPTIONS preflight requests
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   next();
 });
 

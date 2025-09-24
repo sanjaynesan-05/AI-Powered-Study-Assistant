@@ -8,11 +8,12 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   server: {
+    host: '127.0.0.1',
     headers: {
       'Cross-Origin-Opener-Policy': 'unsafe-none'
     },
-    // Using port 3000 to match the authorized origin in Google Cloud Console
-    port: 3000,
+    // Using port 3001 temporarily due to port 3000 permission issues
+    port: 3001,
     strictPort: true,
     proxy: {
       // Proxy API requests to backend
