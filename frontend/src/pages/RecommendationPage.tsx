@@ -202,21 +202,21 @@ export const RecommendationPage: React.FC = () => {
     });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white 
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white 
                      hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <h1 className="text-2xl font-bold mb-1 relative z-10">🎯 Job Recommendations</h1>
-        <p className="text-blue-100 relative z-10">
+        <h1 className="text-xl sm:text-2xl font-bold mb-1 relative z-10">🎯 Job Recommendations</h1>
+        <p className="text-blue-100 relative z-10 text-sm sm:text-base">
           Personalized job recommendations
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-lg p-6 
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 
                      border border-gray-200/50 dark:border-gray-700/50">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 gap-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -232,14 +232,14 @@ export const RecommendationPage: React.FC = () => {
           </div>
 
           {/* Filter and Sort */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Type Filter */}
             {(['all', 'job'] as const).map((filterType) => (
               <button
                 key={filterType}
                 onClick={() => setFilter(filterType)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 
-                          transform hover:scale-105 text-sm
+                className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-all duration-300 
+                          transform hover:scale-105 text-xs sm:text-sm
                           ${filter === filterType
                             ? 'bg-blue-500 text-white'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -253,18 +253,18 @@ export const RecommendationPage: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 
+                className="flex items-center space-x-2 px-3 py-2 sm:px-4 bg-gray-100 dark:bg-gray-700 
                          border border-gray-300 dark:border-gray-600 rounded-lg
                          hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300
-                         transform hover:scale-105 text-sm"
+                         transform hover:scale-105 text-xs sm:text-sm"
               >
-                <Filter className="w-4 h-4" />
-                <span>Sort</span>
-                <ChevronDown className="w-4 h-4" />
+                <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Sort</span>
+                <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
               
               {showSortDropdown && (
-                <div className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-gray-800 
+                <div className="absolute top-full mt-2 right-0 w-40 sm:w-48 bg-white dark:bg-gray-800 
                              border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-10">
                   {[
                     { value: 'default', label: 'Default' },
@@ -277,8 +277,8 @@ export const RecommendationPage: React.FC = () => {
                         setSortBy(option.value as 'default' | 'rating' | 'alphabetical');
                         setShowSortDropdown(false);
                       }}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 
-                               transition-all duration-300 first:rounded-t-lg last:rounded-b-lg text-sm"
+                      className="w-full px-3 py-2 sm:px-4 text-left hover:bg-gray-100 dark:hover:bg-gray-700 
+                               transition-all duration-300 first:rounded-t-lg last:rounded-b-lg text-xs sm:text-sm"
                     >
                       {option.label}
                     </button>
@@ -291,11 +291,11 @@ export const RecommendationPage: React.FC = () => {
       </div>
 
       {/* Recommendations Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-y-auto max-h-[calc(100vh-300px)]">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 overflow-y-auto max-h-[calc(100vh-280px)] sm:max-h-[calc(100vh-300px)]">
         {sortedAndFilteredRecommendations.map((recommendation) => (
           <div
             key={recommendation.id}
-            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-lg 
+            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-lg 
                      hover:shadow-xl transform hover:scale-105 transition-all duration-300 
                      overflow-hidden border border-gray-200/50 dark:border-gray-700/50 group
                      relative"
@@ -304,46 +304,46 @@ export const RecommendationPage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
                            -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             
-            <div className="p-5 relative z-10">
+            <div className="p-4 sm:p-5 relative z-10">
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900">
-                    <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                  <div className="p-2 sm:p-3 rounded-lg bg-blue-100 dark:bg-blue-900 flex-shrink-0">
+                    <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 
-                                 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 
+                                 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 truncate">
                       {recommendation.title}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400 font-medium">
+                    <p className="text-gray-600 dark:text-gray-400 font-medium text-sm sm:text-base truncate">
                       {recommendation.company}
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 rounded-lg text-xs font-medium
+                <span className="px-2 py-1 sm:px-3 rounded-lg text-xs font-medium flex-shrink-0
                   bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                   Job
                 </span>
               </div>
 
               {/* Description */}
-              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm leading-relaxed">
+              <p className="text-gray-600 dark:text-gray-400 mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed">
                 {recommendation.description}
               </p>
 
               {/* Job Details */}
               {recommendation.type === 'job' && (
-                <div className="flex items-center space-x-4 mb-4 text-gray-500 dark:text-gray-400">
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-3 sm:mb-4 text-gray-500 dark:text-gray-400">
                   {recommendation.location && (
-                    <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs">
-                      <MapPin className="w-3 h-3" />
-                      <span>{recommendation.location}</span>
+                    <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs w-fit">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{recommendation.location}</span>
                     </div>
                   )}
                   {recommendation.salary && (
-                    <div className="flex items-center space-x-1 bg-green-100 dark:bg-green-900 px-2 py-1 rounded text-xs">
-                      <DollarSign className="w-3 h-3" />
+                    <div className="flex items-center space-x-1 bg-green-100 dark:bg-green-900 px-2 py-1 rounded text-xs w-fit">
+                      <DollarSign className="w-3 h-3 flex-shrink-0" />
                       <span>{recommendation.salary}</span>
                     </div>
                   )}
@@ -352,10 +352,10 @@ export const RecommendationPage: React.FC = () => {
 
               {/* Skills */}
               <div className="mb-4">
-                <p className="font-medium text-gray-700 dark:text-gray-300 mb-2 text-sm">
+                <p className="font-medium text-gray-700 dark:text-gray-300 mb-2 text-xs sm:text-sm">
                   Required Skills:
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {recommendation.skills.map((skill, index) => (
                     <span
                       key={index}
@@ -375,46 +375,46 @@ export const RecommendationPage: React.FC = () => {
               {hasCooldown(recommendation.id) ? (
                 <button
                   disabled
-                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg 
-                           font-medium cursor-not-allowed shadow-md text-sm
+                  className="w-full flex items-center justify-center space-x-2 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg 
+                           font-medium cursor-not-allowed shadow-md text-xs sm:text-sm
                            bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                 >
                   <span>Cooldown: {getCooldownRemaining(recommendation.id)}</span>
-                  <Clock className="w-4 h-4" />
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               ) : hasPassedTest(recommendation.id) ? (
                 <div className="flex flex-col w-full space-y-2">
                   <button
                     onClick={() => handleOpenTest(recommendation)}
-                    className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-lg 
+                    className="w-full flex items-center justify-center space-x-2 py-2 px-3 sm:px-4 rounded-lg 
                              font-medium transform hover:scale-105 transition-all duration-300
-                             shadow-md hover:shadow-lg text-sm
+                             shadow-md hover:shadow-lg text-xs sm:text-sm
                              bg-green-500 hover:bg-green-600 text-white"
                   >
                     <span>View Test Results</span>
-                    <AlertTriangle className="w-4 h-4" />
+                    <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
                   <button 
                     onClick={() => window.open(recommendation.url, '_blank')}
-                    className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-lg 
+                    className="w-full flex items-center justify-center space-x-2 py-2 px-3 sm:px-4 rounded-lg 
                              font-medium transform hover:scale-105 transition-all duration-300
-                             shadow-md hover:shadow-lg text-sm
+                             shadow-md hover:shadow-lg text-xs sm:text-sm
                              bg-blue-500 hover:bg-blue-600 text-white"
                   >
                     <span>Apply Now</span>
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => handleOpenTest(recommendation)}
-                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg 
+                  className="w-full flex items-center justify-center space-x-2 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg 
                            font-medium transform hover:scale-105 transition-all duration-300
-                           shadow-md hover:shadow-lg text-sm
+                           shadow-md hover:shadow-lg text-xs sm:text-sm
                            bg-blue-500 hover:bg-blue-600 text-white"
                 >
                   <span>Take Eligibility Test</span>
-                  <AlertTriangle className="w-4 h-4" />
+                  <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               )}
             </div>
@@ -423,15 +423,15 @@ export const RecommendationPage: React.FC = () => {
       </div>
 
       {sortedAndFilteredRecommendations.length === 0 && (
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-lg p-12 text-center
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-lg p-8 sm:p-12 text-center
                        border border-gray-200/50 dark:border-gray-700/50">
-          <div className="text-4xl mb-3">
+          <div className="text-3xl sm:text-4xl mb-3">
             {searchTerm ? '🔍' : '💼'}
           </div>
-          <h3 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
+          <h3 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
             {searchTerm ? 'No results found' : 'No recommendations available'}
           </h3>
-          <p className="text-gray-500 dark:text-gray-500 text-sm">
+          <p className="text-gray-500 dark:text-gray-500 text-xs sm:text-sm">
             {searchTerm 
               ? 'Try adjusting your search terms or filters'
               : 'Complete your profile and add skills to get recommendations'
@@ -442,27 +442,27 @@ export const RecommendationPage: React.FC = () => {
 
       {/* Skills Match Summary */}
       {user?.skills && user.skills.length > 0 && (
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-lg p-6
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6
                        border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl 
                        transition-all duration-300 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-blue-500/5 
                          opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 relative z-10">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-3 sm:mb-4 relative z-10">
             Your Skills Match
           </h2>
           
-          <div className="grid grid-cols-2 gap-4 relative z-10">
-            <div className="text-center p-4 bg-green-50 dark:bg-green-900/30 rounded-xl">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 relative z-10">
+            <div className="text-center p-3 sm:p-4 bg-green-50 dark:bg-green-900/30 rounded-lg sm:rounded-xl">
+              <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
                 {recommendations.filter(rec => 
                   rec.skills.some(skill => user.skills.includes(skill))
                 ).length}
               </div>
               <div className="text-gray-600 dark:text-gray-400 text-xs">Matching</div>
             </div>
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+            <div className="text-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg sm:rounded-xl">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                 {recommendations.length}
               </div>
               <div className="text-gray-600 dark:text-gray-400 text-xs">Total Jobs</div>

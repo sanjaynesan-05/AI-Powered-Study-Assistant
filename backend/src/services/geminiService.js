@@ -49,12 +49,15 @@ class GeminiService {
   }
 
   /**
-   * Generate AI response for study assistance
+   * Generate AI response for study assistance with retry logic
    * @param {string} prompt - User's question or prompt
    * @param {string} topic - Optional topic context
    * @returns {Promise<Object>} Response object with success status and message
    */
-  async generateStudyResponse(prompt, topic = 'General') {
+  async generateStudyResponse(prompt, topic = 'General', retryCount = 0) {
+    const maxRetries = 2;
+    const baseDelay = 1000; // 1 second
+
     try {
       // Check if service is initialized
       if (!this.isInitialized) {
@@ -77,7 +80,7 @@ class GeminiService {
 
       for (const modelName of modelNames) {
         try {
-          console.log(`🔄 Trying model: ${modelName}`);
+          console.log(`🔄 Trying model: ${modelName} (attempt ${retryCount + 1})`);
           
           const model = this.genAI.getGenerativeModel({ 
             model: modelName,
@@ -89,18 +92,29 @@ class GeminiService {
             }
           });
 
-          // Create study buddy context
+          // Create study buddy context with enhanced formatting instructions
           const studyContext = `You are an AI Study Assistant and learning companion. Your role is to:
-- Provide clear, helpful explanations in a friendly tone
-- Break down complex topics into digestible parts
-- Give practical examples and actionable advice
+- Provide clear, helpful explanations in a friendly, encouraging tone
+- Break down complex topics into digestible, well-organized sections
+- Give practical examples and actionable advice with step-by-step guidance
 - Encourage continuous learning and growth
 - Adapt explanations to different learning levels
+- Use emojis and formatting to make responses engaging and scannable
+
+FORMATTING GUIDELINES:
+- Start major sections with relevant emojis (📚, ✨, 🎯, 💡, 🚀, 📖, 🧠, 📝, 🎨, etc.)
+- Use **bold text** for important concepts and key terms
+- Use bullet points (-) for lists and actionable items
+- Use numbered lists (1., 2., 3.) for sequential steps
+- Use \`code blocks\` for technical terms, commands, or code snippets
+- Use triple backticks for multi-line code examples
+- Keep paragraphs concise and focused (2-3 sentences max)
+- Include practical examples when relevant
 
 Topic Context: ${topic}
 Student Question: ${prompt.trim()}
 
-Please provide a helpful, encouraging response:`;
+Please provide a well-structured, engaging response with clear sections and formatting:`;
 
           console.log(`🤖 Generating response for topic: ${topic} using ${modelName}`);
           
@@ -126,6 +140,15 @@ Please provide a helpful, encouraging response:`;
         } catch (error) {
           console.log(`❌ Model ${modelName} failed: ${error.message}`);
           lastError = error;
+
+          // If it's a 503 error and we haven't reached max retries, wait and retry
+          if (error.message.includes('503') && retryCount < maxRetries) {
+            const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+            console.log(`⏳ Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return this.generateStudyResponse(prompt, topic, retryCount + 1);
+          }
+          
           continue; // Try next model
         }
       }
@@ -152,25 +175,30 @@ Please provide a helpful, encouraging response:`;
    * @returns {string} User-friendly error message
    */
   getErrorFallbackMessage(error) {
+    // Check for service unavailable (503) errors
+    if (error.message.includes('503') || error.message.includes('Service Unavailable')) {
+      return "🌐 **Google's Gemini AI is temporarily experiencing high demand.** Don't worry - this happens sometimes!\n\n" + this.generateMockStudyResponse();
+    }
+
     // If Gemini is not available, provide a helpful study response
     if (error.message.includes('404') || error.message.includes('not found')) {
       return this.generateMockStudyResponse();
     }
     
     if (error.message.includes('API key')) {
-      return "🔑 I'm having trouble with my API configuration. Please check that the API key is properly set up.";
+      return "🔑 **I'm having trouble with my API configuration.** Please check that the API key is properly set up.\n\n" + this.generateMockStudyResponse();
     }
     
     if (error.message.includes('quota') || error.message.includes('limit')) {
-      return "⏰ I'm currently experiencing high demand. Please try again in a few moments!";
+      return "⏰ **I'm currently experiencing high demand.** Please try again in a few moments!\n\n" + this.generateMockStudyResponse();
     }
     
     if (error.message.includes('network') || error.message.includes('fetch')) {
-      return "🌐 I'm having connectivity issues. Please check your internet connection and try again.";
+      return "🌐 **I'm having connectivity issues.** Please check your internet connection and try again.\n\n" + this.generateMockStudyResponse();
     }
     
     // If all else fails, provide helpful study content
-    return this.generateMockStudyResponse();
+    return "🤖 **I'm experiencing some technical difficulties, but I'm still here to help!**\n\n" + this.generateMockStudyResponse();
   }
 
   /**
@@ -179,67 +207,71 @@ Please provide a helpful, encouraging response:`;
    */
   generateMockStudyResponse() {
     const studyTips = [
-      `📚 Great question! While I'm having some technical difficulties connecting to my AI brain, I can still help you! Here's some general study advice:
+      `📚 **Great question!** While I'm having some technical difficulties connecting to my AI brain, I can still help you learn! 
 
-✨ **Active Learning Tips:**
+✨ **Active Learning Techniques:**
 - Break down complex topics into smaller, manageable chunks
-- Use the Feynman Technique: explain concepts in simple terms
-- Practice spaced repetition to improve retention
+- Use the **Feynman Technique**: explain concepts in simple terms
+- Practice **spaced repetition** to improve long-term retention
 - Create mind maps to visualize connections between ideas
 
-🎯 **Study Strategies:**
-- Set specific, achievable learning goals
-- Use the Pomodoro Technique (25 min study + 5 min break)
-- Find your optimal learning time (morning vs evening)
-- Join study groups or find a study buddy
+🎯 **Proven Study Strategies:**
+- Set specific, achievable learning goals each day
+- Use the **Pomodoro Technique** (25 min study + 5 min break)
+- Find your optimal learning time (morning vs evening person?)
+- Join study groups or find a study buddy for accountability
 
-💡 **Remember:** Learning is a journey, not a destination. Every expert was once a beginner! Keep practicing and stay curious. 
+💡 **Pro Tips for Success:**
+- Learning is a journey, not a destination
+- Every expert was once a beginner
+- Mistakes are learning opportunities in disguise
+- Stay curious and ask lots of questions
 
-What specific topic would you like to explore next?`,
+What specific topic would you like to explore next? I'm here to help! 🚀`,
 
-      `🤖 I'm experiencing some connectivity issues, but I'm still here to help you learn! Here are some valuable insights:
+      `🤖 **I'm experiencing some connectivity issues**, but I'm still here to support your learning journey!
 
 🚀 **Programming Learning Path:**
-- Start with fundamentals (variables, loops, functions)
-- Build small projects to apply what you learn
-- Read other people's code to see different approaches
-- Don't be afraid to make mistakes - they're learning opportunities!
+- **Start with fundamentals**: variables, loops, functions, data structures
+- **Build small projects** to apply what you learn immediately  
+- **Read other people's code** to see different approaches and patterns
+- **Don't fear mistakes** - they're your best teachers!
 
 📖 **Effective Study Methods:**
-- Use multiple learning resources (videos, books, tutorials)
-- Practice coding regularly, even if just 15-30 minutes daily
-- Join coding communities for support and feedback
-- Document your learning journey in a blog or notes
+- Use **multiple learning resources** (videos, books, interactive tutorials)
+- **Practice coding daily**, even if just 15-30 minutes
+- **Join coding communities** for support, feedback, and networking
+- **Document your journey** in a blog or personal notes
 
-🎯 **Career Development:**
-- Build a portfolio showcasing your projects
-- Network with other learners and professionals
-- Stay updated with industry trends and technologies
-- Consider contributing to open-source projects
+🎯 **Career Development Strategy:**
+- **Build a portfolio** showcasing your best projects
+- **Network actively** with other learners and professionals
+- **Stay updated** with industry trends and emerging technologies
+- **Contribute to open-source** projects to gain real-world experience
 
-Keep going! You're doing great, and every step forward is progress worth celebrating! 🎉`,
+Keep going! You're doing amazing, and every step forward is progress worth celebrating! 🎉`,
 
-      `💭 I'm having some technical difficulties, but let me share some valuable learning wisdom with you:
+      `💭 **I'm having some technical difficulties**, but let me share some valuable learning wisdom:
 
-🧠 **Learning Psychology:**
-- Your brain learns best through repetition and active engagement
-- Sleep and exercise significantly boost learning and memory
-- Teaching others helps solidify your own understanding
-- Embrace the "beginner's mind" - curiosity over perfection
+🧠 **Learning Psychology Insights:**
+- Your brain learns best through **repetition and active engagement**
+- **Sleep and exercise** significantly boost learning and memory consolidation
+- **Teaching others** helps solidify your own understanding
+- Embrace the **"beginner's mind"** - curiosity over perfectionism
 
 📝 **Study Best Practices:**
-- Take handwritten notes (improves retention by 23%)
-- Use the Cornell Note-taking system
-- Review material within 24 hours of first learning it
-- Create flashcards for key concepts and terminology
+- **Take handwritten notes** (improves retention by 23%!)
+- Use the **Cornell Note-taking System** for organized learning
+- **Review material within 24 hours** of first learning it
+- Create **flashcards** for key concepts and terminology
 
-🎨 **Make Learning Fun:**
-- Gamify your learning with challenges and rewards
-- Join online communities related to your interests
-- Find real-world applications for what you're learning
-- Celebrate small wins along the way
+🎨 **Make Learning Enjoyable:**
+- **Gamify your learning** with challenges and personal rewards
+- **Join online communities** related to your interests
+- **Find real-world applications** for what you're studying
+- **Celebrate small wins** along the way
 
-Remember: Learning is a superpower that no one can take away from you! What would you like to explore next? 🌟`
+Remember: **Learning is a superpower** that no one can ever take away from you! What would you like to explore next? 🌟`
     ];
 
     return studyTips[Math.floor(Math.random() * studyTips.length)];

@@ -107,61 +107,61 @@ export const LearningPathPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="relative p-6 overflow-hidden text-white transition-all duration-300 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl hover:shadow-xl group">
+      <div className="relative p-4 sm:p-6 overflow-hidden text-white transition-all duration-300 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl hover:shadow-xl group">
         <div className="absolute inset-0 transition-opacity duration-300 opacity-0 bg-white/10 group-hover:opacity-100" />
-        <h1 className="relative z-10 mb-1 text-2xl font-bold">📚 Learning Paths</h1>
-        <p className="relative z-10 text-blue-100">
+        <h1 className="relative z-10 mb-1 text-xl sm:text-2xl font-bold">📚 Learning Paths</h1>
+        <p className="relative z-10 text-blue-100 text-sm sm:text-base">
           Choose your learning journey and track progress
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(100vh-200px)]">
         {learningPaths.map((path) => (
           <div
             key={path.id}
-            className="relative overflow-hidden transition-all duration-300 transform border shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl hover:shadow-xl hover:scale-105 border-gray-200/50 dark:border-gray-700/50 group w-80 h-64 mx-auto flex flex-col"
+            className="relative overflow-hidden transition-all duration-300 transform border shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl sm:rounded-2xl hover:shadow-xl hover:scale-105 border-gray-200/50 dark:border-gray-700/50 group w-full max-w-sm mx-auto h-60 sm:h-64 flex flex-col"
           >
             {/* Shining effect */}
             <div className="absolute inset-0 transition-transform duration-1000 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full" />
             
-            <div className="relative z-10 p-5 flex flex-col flex-1">
+            <div className="relative z-10 p-4 sm:p-5 flex flex-col flex-1">
               <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="mb-2 text-lg font-bold text-gray-800 transition-colors duration-300 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                <div className="flex-1 pr-2">
+                  <h3 className="mb-2 text-base sm:text-lg font-bold text-gray-800 transition-colors duration-300 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 leading-tight">
                     {path.title}
                   </h3>
-                  <span className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${getDifficultyColor(path.difficulty)}`}>
+                  <span className={`inline-block px-2 py-1 sm:px-3 rounded-lg text-xs font-medium ${getDifficultyColor(path.difficulty)}`}>
                     {path.difficulty}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                   <button 
                     onClick={() => handleGoToRoadmap(path.id, path.category)}
-                    className="flex items-center justify-center w-8 h-8 transition-colors duration-300 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/50"
+                    className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 transition-colors duration-300 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/50"
                     title="View Roadmap"
                   >
-                    <Map className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <Map className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
                   </button>
-                  <div className="flex items-center px-2 py-1 space-x-1 text-yellow-500 rounded-lg bg-yellow-50 dark:bg-yellow-900">
-                    <Star className="w-4 h-4 fill-current" />
+                  <div className="flex items-center px-1.5 py-0.5 sm:px-2 sm:py-1 space-x-1 text-yellow-500 rounded-lg bg-yellow-50 dark:bg-yellow-900">
+                    <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
                     <span className="text-xs font-medium">4.8</span>
                   </div>
                 </div>
               </div>
 
-              <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400 flex-1">
+              <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed text-gray-600 dark:text-gray-400 flex-1">
                 {path.description}
               </p>
 
               <button
                 onClick={() => handleStartContinue(path.id, path.title)}
-                className="flex items-center justify-center w-full px-4 py-3 space-x-2 text-sm font-medium text-white transition-all duration-300 transform bg-blue-500 rounded-lg shadow-md hover:scale-105 hover:shadow-lg hover:bg-blue-600"
+                className="flex items-center justify-center w-full px-3 py-2.5 sm:px-4 sm:py-3 space-x-2 text-xs sm:text-sm font-medium text-white transition-all duration-300 transform bg-blue-500 rounded-lg shadow-md hover:scale-105 hover:shadow-lg hover:bg-blue-600"
               >
-                <Play className="w-4 h-4" />
+                <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>Start Learning</span>
-                <ExternalLink className="w-4 h-4" />
+                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
           </div>

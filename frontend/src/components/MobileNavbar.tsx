@@ -7,11 +7,11 @@ export const MobileNavbar: React.FC = () => {
   const location = useLocation();
 
   const menuItems = [
+    { icon: User, label: 'Profile', path: '/profile' },
     { icon: Bot, label: 'AI Mentor', path: '/ai-mentor' },
     { icon: FileText, label: 'Resume', path: '/resume-builder' },
     { icon: BookOpen, label: 'Learning', path: '/learning-path' },
     { icon: Star, label: 'Jobs', path: '/recommendation' },
-    { icon: User, label: 'Profile', path: '/profile' },
   ];
 
   return (
