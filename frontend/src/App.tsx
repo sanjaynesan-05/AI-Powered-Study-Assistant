@@ -12,43 +12,19 @@ import { ContinueLearningPage } from './pages/ContinueLearningPage';
 import { RecommendationPage } from './pages/RecommendationPage';
 
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  
-  console.log('Protected Route Check - User:', user ? 'Authenticated' : 'Not Authenticated');
-  
-  if (!user) {
-    console.log('Redirecting to landing page - user not authenticated');
-    return <Navigate to="/" replace />;
-  }
-  
-  console.log('User is authenticated, rendering protected content');
-  return <>{children}</>;
-};
+
+// No-op ProtectedRoute: always renders children (no auth)
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
 
 // AppContent component to handle routing and authentication state
 const AppContent: React.FC = () => {
-  const { user, loading } = useAuth();
-  
-  // While AuthContext is checking for a saved user, show nothing
-  // This prevents any flash of content before authentication is determined
-  if (loading) {
-    return null;
-  }
-
   return (
     <Router>
       <div className="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-gray-900">
         <Routes>
-          {/* Redirect to dashboard if logged in, otherwise show landing page */}
-          <Route path="/" element={user ? <Navigate to="/profile" replace /> : <LandingPage />} />
-          
-          {/* Protected routes with Layout */}
-          <Route element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }>
+          {/* Always show dashboard/profile as home page */}
+          <Route path="/" element={<Navigate to="/profile" replace />} />
+          <Route element={<Layout />}>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/ai-mentor" element={<AIMentorPage />} />
             <Route path="/resume-builder" element={<ResumeBuilderPage />} />
@@ -56,8 +32,8 @@ const AppContent: React.FC = () => {
             <Route path="/continue-learning" element={<ContinueLearningPage />} />
             <Route path="/recommendation" element={<RecommendationPage />} />
           </Route>
-          {/* Catch-all: redirect unknown routes to landing */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch-all: redirect unknown routes to dashboard/profile */}
+          <Route path="*" element={<Navigate to="/profile" replace />} />
         </Routes>
       </div>
     </Router>
