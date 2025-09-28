@@ -1,0 +1,24 @@
+{
+  "name": "ai-powered-study-assistant",
+  "version": "1.0.0",
+  "description": "A comprehensive AI-powered mentoring platform designed to provide personalized guidance, career advice, learning path suggestions, resume analysis, and interview preparation assistance. This platform combines the power of AI with a user-friendly interface to deliver a seamless mentoring experience.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanjaynesan-05/AI-Powered-Study-Assistant.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sanjaynesan-05/AI-Powered-Study-Assistant/issues"
+  },
+  "homepage": "https://github.com/sanjaynesan-05/AI-Powered-Study-Assistant#readme"
+}

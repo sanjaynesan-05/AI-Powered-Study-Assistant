@@ -1,14 +1,14 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
-// Create an axios instance with base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Create an axios instance with base URL - Updated to port 5001
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds timeout
+  timeout: 15000, // 15 seconds timeout for AI responses
 });
 
 // Add a request interceptor to include the auth token in all requests
@@ -285,6 +285,46 @@ export const authService = {
       return {} as UserResponse;
     }
   },
+};
+
+// AI Services
+export const aiService = {
+  // Chat with AI mentor
+  chat: async (message: string): Promise<{ reply: string; timestamp: string }> => {
+    try {
+      const response = await api.post('/ai-chat', { message });
+      return {
+        reply: response.data.reply,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('AI chat error:', error);
+      throw new Error('Failed to get AI response');
+    }
+  },
+
+  // Get smart learning recommendations
+  getRecommendations: async (userLevel?: string, interests?: string, goals?: string): Promise<{
+    recommendations: Array<{
+      title: string;
+      type: string;
+      difficulty: string;
+      description: string;
+    }>;
+    success: boolean;
+  }> => {
+    try {
+      const response = await api.post('/smart-recommendations', {
+        userLevel,
+        interests,
+        goals
+      });
+      return response.data;
+    } catch (error) {
+      console.error('AI recommendations error:', error);
+      throw new Error('Failed to get recommendations');
+    }
+  }
 };
 
 // Export default api for other services

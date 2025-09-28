@@ -1,143 +1,285 @@
-# AI Mentor Platform
+# AI-Powered Study Assistant
 
-A comprehensive AI-powered mentoring platform designed to provide personalized guidance, career advice, learning path suggestions, resume analysis, and interview preparation assistance. This platform combines the power of AI with a user-friendly interface to deliver a seamless mentoring experience.
+A comprehensive AI-powered study companion that provides personalized learning guidance, programming help, career advice, and interview preparation. Built with React + TypeScript frontend and Node.js + Express backend, powered by Google's Gemini AI.
 
-![AI Mentor Platform](frontend/src/assets/kmentor-logo.jpg)
+![AI Study Assistant](frontend/src/assets/kmentor-logo.jpg)
+
+## ✨ Current Status: FULLY FUNCTIONAL ✨
+
+🎉 **Day 2 Complete**: Real AI chatbot integration working with Google Gemini 2.0!
 
 ## 📚 Table of Contents
 
 - [Features](#features)
+- [Live Demo](#live-demo)
+- [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
 - [Technology Stack](#technology-stack)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
+- [API Endpoints](#api-endpoints)
+- [Environment Setup](#environment-setup)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## 🌟 Features
 
-- **AI Mentor Conversations**: Engage with an AI mentor for personalized guidance on various topics, including career advice, learning paths, and interview preparation.
-- **Career Guidance**: Receive tailored career advice based on your skills, interests, and goals.
-- **Secure Authentication**: Robust authentication system using JWT tokens, ensuring secure access to protected routes and user data.
-- **Learning Path Suggestions**: Get customized learning paths designed to help you achieve your career objectives.
-- **Resume Analysis**: Upload your resume to receive professional feedback and suggestions for improvement.
-- **Resume Builder**: Create professional resumes with guided assistance and customizable templates.
-- **Interactive User Interface**: A modern, responsive UI with light/dark mode support for an enhanced user experience.
-- **Personalized Recommendations**: Receive content and suggestions tailored to your profile and preferences.
-- **User Authentication**: Secure login and registration system with email/password authentication.
+### ✅ **Working Features:**
+- **🤖 Real AI Conversations**: Chat with Google Gemini 2.0 for personalized study assistance
+- **📚 Topic-Based Learning**: Specialized help for Programming, JavaScript, Career Guidance, Interview Prep, etc.
+- **💬 Modern Chat Interface**: Clean, responsive chat UI similar to ChatGPT/Gemini
+- **🎯 Suggested Questions**: Context-aware question suggestions for each topic
+- **⚡ Real-time Responses**: Fast AI responses with typing indicators
+- **🕒 Message History**: Full conversation history with timestamps
+- **🌗 Dark/Light Mode**: Theme support for better user experience
+- **📱 Mobile Responsive**: Works perfectly on all device sizes
+- **🔄 Auto-retry Logic**: Multiple model fallbacks for reliability
+- **💡 Smart Error Handling**: Helpful study tips even when AI is unavailable
 
-## 🏗️ Project Structure
+### 🚀 **Advanced Features:**
+- **Health Monitoring**: Real-time AI service status indicator
+- **Topic Context**: AI responses tailored to selected study topics
+- **Conversation Management**: New chat functionality to start fresh conversations
+- **Fallback Content**: Educational content when AI service is temporarily unavailable
+
+## � Live Demo
+
+**Frontend**: http://127.0.0.1:3001  
+**Backend API**: http://localhost:5001  
+**AI Chat Endpoint**: `POST http://localhost:5001/api/ai/ask`  
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn
+- Google Gemini API key
+
+### Installation & Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd AI-Powered-Study-Assistant
+   ```
+
+2. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   
+   # Create .env file with:
+   PORT=5001
+   GEMINI_API_KEY=your_gemini_api_key_here
+   
+   # Start backend server
+   node server.js
+   ```
+
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   
+   # Start development server
+   npm run dev
+   ```
+
+4. **Access the Application**
+   - Open http://127.0.0.1:3001 in your browser
+   - Navigate to AI Mentor page
+   - Start chatting with your AI study assistant!
+
+## �🏗️ Project Structure
 
 The project is divided into two main parts: the backend and the frontend. Below is an overview of the directory structure:
 
 ```
-├── backend/               # Express.js backend
+├── backend/                    # Node.js + Express API server
 │   ├── src/
-│   │   ├── config/        # Database and app configuration files
-│   │   ├── controllers/   # Request handlers for various features
-│   │   ├── middleware/    # Custom middleware for authentication, error handling, etc.
-│   │   ├── models/        # MongoDB models for data storage
-│   │   └── routes/        # API routes for different functionalities
-└── frontend/              # React (TypeScript) frontend
+│   │   ├── services/          # 🔥 AI service with Gemini integration
+│   │   │   └── geminiService.js  # Core AI logic with model fallbacks
+│   │   ├── routes/            # API endpoints
+│   │   │   └── aiRoutes.js      # 🎯 /api/ai/* routes
+│   │   ├── config/            # Database and app configuration
+│   │   ├── controllers/       # Request handlers
+│   │   ├── middleware/        # Authentication, logging, etc.
+│   │   └── models/            # Data models (currently in-memory)
+│   ├── server.js              # 🚀 Main server entry point
+│   ├── test-gemini.js         # 🧪 AI integration test script
+│   ├── test-all-models.js     # 🔍 Model availability checker
+│   └── .env                   # Environment variables
+│
+└── frontend/                   # React + TypeScript SPA
     ├── src/
-    │   ├── assets/        # Static assets like images and icons
-    │   ├── components/    # Reusable UI components
-    │   ├── contexts/      # React contexts for global state management
-    │   ├── pages/         # Application pages
-    │   ├── services/      # API service layer for backend communication
-    │   ├── types/         # TypeScript types for type safety
-    │   └── utils/         # Utility functions for common tasks
+    │   ├── pages/             # Application pages
+    │   │   └── AIMentorPage.tsx  # 💬 Main chat interface
+    │   ├── services/          # API communication
+    │   │   ├── aiMentorService.ts  # 🔌 AI service client
+    │   │   └── api.ts           # Base API utilities
+    │   ├── components/        # Reusable UI components
+    │   ├── contexts/          # React state management
+    │   ├── assets/            # Images, fonts, etc.
+    │   └── types/             # TypeScript interfaces
+    ├── package.json
+    └── vite.config.ts         # Vite configuration
 ```
 
-## 🚀 Getting Started
-
-Follow these steps to set up and run the project locally.
-
-### Prerequisites
-
-Ensure you have the following installed on your system:
-
-- **Node.js** (v16 or higher): [Download Node.js](https://nodejs.org/)
-- **MongoDB**: A running instance of MongoDB for database operations. [Download MongoDB](https://www.mongodb.com/try/download/community)
-- **npm** or **yarn**: Package managers for Node.js.
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/ai-mentor-platform.git
-   cd ai-mentor-platform
-   ```
-
-2. **Install backend dependencies**:
-   ```bash
-   cd backend
-   npm install
-   ```
-
-3. **Install frontend dependencies**:
-   ```bash
-   cd ../frontend
-   npm install
-   ```
-
-4. **Set up environment variables**:
-   Create a `.env` file in the `backend` directory with the following variables:
-   ```env
-   PORT=5000
-   MONGODB_URI=your_mongodb_connection_string
-   JWT_SECRET=your_secret_key
-   JWT_EXPIRE=30d
-   ```
-
-5. **Start the application**:
-   - On Windows: Run the `start_services.bat` file.
-   - On Unix/Mac: Run the `./start_services.sh` file.
-   - Alternatively, start the backend and frontend manually:
-     ```bash
-     # Terminal 1: Start the backend
-     cd backend
-     npm run dev
-
-     # Terminal 2: Start the frontend
-     cd frontend
-     npm run dev
-     ```
-
-6. **Access the application**:
-   Open your browser and navigate to [http://localhost:5173](http://localhost:5173).
-
-## 💻 Technology Stack
+## 🛠️ Technology Stack
 
 ### Backend
+- **Runtime**: Node.js 18+
+- **Framework**: Express.js
+- **AI Integration**: Google Generative AI SDK (`@google/generative-ai`)
+- **Model**: Gemini 2.0 Flash Experimental (`gemini-2.0-flash-exp`)
+- **Environment**: dotenv for configuration
+- **CORS**: Enabled for frontend communication
 
-The backend is built using the following technologies:
+### Frontend  
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite 7.1.4
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **HTTP Client**: Fetch API with custom service layer
+- **State Management**: React hooks (useState, useEffect)
 
-- **Node.js**: JavaScript runtime for building scalable server-side applications.
-- **Express.js**: Web framework for creating RESTful APIs.
-- **MongoDB**: NoSQL database for storing user data and application content.
-- **Mongoose**: ODM library for MongoDB.
-- **JWT Authentication**: Secure token-based authentication.
-- **RESTful API**: Standardized API design for communication between frontend and backend.
+### AI Features
+- **Primary Model**: `gemini-2.0-flash-exp` (confirmed working)
+- **Fallback Models**: `gemini-1.5-flash-latest`, `gemini-1.5-pro-latest`, `gemini-1.5-flash`
+- **Context-Aware**: Study buddy persona with topic-specific responses
+- **Error Handling**: Graceful degradation with educational fallback content
 
-### Frontend
+## 🔌 API Endpoints
 
-The frontend is built using the following technologies:
+### Core AI Endpoints
+```http
+POST /api/ai/ask
+Content-Type: application/json
+{
+  "prompt": "How do I learn JavaScript?",
+  "topic": "Programming"
+}
 
-- **React 18**: JavaScript library for building user interfaces.
-- **TypeScript**: Superset of JavaScript for type safety and better developer experience.
-- **TailwindCSS**: Utility-first CSS framework for styling.
-- **Framer Motion**: Library for animations and transitions.
-- **Vite**: Fast build tool for modern web applications.
-- **React Router**: Library for handling navigation and routing.
+GET /api/ai/health
+# Returns AI service health status
 
+GET /api/ai/topics  
+# Returns available study topics
+```
+
+### Legacy Endpoints
+```http
+POST /api/ai-chat
+# Backward compatible endpoint
+```
+
+## ⚙️ Environment Setup
+
+Create a `.env` file in the backend directory:
+
+```env
+# Server Configuration
+PORT=5001
+NODE_ENV=development
+
+# AI Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Get your API key from: https://makersuite.google.com/app/apikey
+```
+
+## 🧪 Testing
+
+### Test AI Integration
+```bash
+cd backend
+node test-gemini.js          # Test current configuration
+node test-all-models.js     # Find available models
+```
+
+### Test API Endpoints
+```bash
+# PowerShell
+$body = @{prompt="Hello"; topic="General"} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:5001/api/ai/ask" -Method POST -Body $body -ContentType "application/json"
+```
 ## 📖 Documentation
 
-Comprehensive documentation is available in the `docs` directory. Key documents include:
+Comprehensive documentation is available in the `docs` directory:
+
+- **[API Documentation](docs/API_DOCS.md)**: Complete API reference with examples
+- **[Development Guide](docs/DEVELOPMENT_GUIDE.md)**: Setup and development workflow  
+- **[User Guide](docs/USER_GUIDE.md)**: How to use the AI Study Assistant
+- **[Database Schema](docs/DATABASE_SCHEMA.md)**: Current data structure (in-memory)
+
+## 🎯 Current Implementation Status
+
+### ✅ Completed Features (Day 2)
+- [x] Real AI integration with Google Gemini 2.0
+- [x] Modern chat interface with React + TypeScript
+- [x] Topic-based learning assistance
+- [x] Suggested questions and conversation starters
+- [x] Real-time message history with timestamps
+- [x] Error handling and service health monitoring
+- [x] Mobile-responsive design
+- [x] Dark/light mode support
+- [x] API endpoints with comprehensive error handling
+
+### 🚧 Future Enhancements (Days 3-7)
+- [ ] User authentication and profiles
+- [ ] Conversation persistence
+- [ ] Resume analysis and feedback
+- [ ] Learning path recommendations
+- [ ] Progress tracking and analytics
+- [ ] Advanced study tools and resources
+
+## 🤝 Contributing
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/your-feature-name`
+3. **Commit changes**: `git commit -am 'Add some feature'`
+4. **Push to branch**: `git push origin feature/your-feature-name`
+5. **Create a Pull Request**
+
+### Development Setup
+```bash
+# Backend development with auto-restart
+cd backend && nodemon server.js
+
+# Frontend development with hot reload  
+cd frontend && npm run dev
+
+# Run tests
+cd backend && npm test
+```
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Google Gemini AI**: For providing the AI capabilities
+- **React Team**: For the excellent frontend framework
+- **Tailwind CSS**: For the utility-first CSS framework
+- **Vite**: For the fast build tool and development experience
+
+## 📞 Support
+
+If you encounter any issues or have questions:
+
+1. **Check the documentation** in the `/docs` folder
+2. **Run the test scripts** to verify your setup:
+   ```bash
+   cd backend
+   node test-gemini.js
+   node test-all-models.js
+   ```
+3. **Open an issue** on GitHub with detailed information
+
+---
+
+**Built with ❤️ for learners everywhere** 
+
+**Status**: 🟢 Fully Functional | **Last Updated**: September 28, 2025
 
 - [API Documentation](./docs/API_DOCS.md): Detailed information about the available API endpoints.
 - [Authentication System](./docs/AUTH_SYSTEM.md): Explanation of the authentication flow and security measures.
