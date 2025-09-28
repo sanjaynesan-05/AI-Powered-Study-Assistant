@@ -12,6 +12,7 @@ import { ResumeBuilderPage } from './pages/ResumeBuilderPage';
 import { LearningPathPage } from './pages/LearningPathPage';
 import { ContinueLearningPage } from './pages/ContinueLearningPage';
 import { RecommendationPage } from './pages/RecommendationPage';
+import YouTubeTest from './components/YouTubeTest';
 
 
 
@@ -31,6 +32,7 @@ const AppContent: React.FC = () => {
             <Route path="/learning-path" element={<LearningPathPage />} />
             <Route path="/continue-learning" element={<ContinueLearningPage />} />
             <Route path="/recommendation" element={<RecommendationPage />} />
+            <Route path="/youtube-test" element={<YouTubeTest />} />
           </Route>
           {/* Catch-all: redirect unknown routes to dashboard/profile */}
           <Route path="*" element={<Navigate to="/profile" replace />} />

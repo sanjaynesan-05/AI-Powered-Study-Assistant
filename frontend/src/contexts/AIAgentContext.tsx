@@ -221,21 +221,32 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
       setIsGenerating(true);
       setError(null);
       
-      const response = await makeAuthenticatedRequest('/api/ai-agents/analyze-assessment', {
-        method: 'POST',
-        body: JSON.stringify({
-          userAnswers,
-          assessment,
-          assessmentId: assessment.id,
-          timeSpent
-        })
-      });
+      // Mock analysis for demo
+      const correctAnswers = userAnswers.filter((answer, index) => 
+        answer === assessment.questions[index]?.correctAnswer
+      ).length;
+      
+      const score = Math.round((correctAnswers / assessment.questions.length) * 100);
+      const passed = score >= (assessment.passingScore || 70);
+      
+      const mockResults = {
+        score,
+        passed,
+        performance: score >= 90 ? 'Excellent' : score >= 70 ? 'Good' : 'Needs Improvement',
+        feedback: `You scored ${score}% on the ${assessment.skillArea} assessment. ${
+          passed 
+            ? 'Great job! You demonstrate solid understanding of the concepts.' 
+            : 'Consider reviewing the fundamentals and practicing more.'
+        }`,
+        recommendations: passed 
+          ? [`Advance to intermediate ${assessment.skillArea} topics`, 'Practice real-world projects', 'Consider teaching others']
+          : [`Review ${assessment.skillArea} fundamentals`, 'Take additional practice tests', 'Focus on weak areas identified'],
+        timeSpent,
+        totalQuestions: assessment.questions.length,
+        correctAnswers
+      };
 
-      if (response.success) {
-        return response.data;
-      } else {
-        throw new Error(response.message || 'Failed to analyze assessment results');
-      }
+      return mockResults;
     } catch (err: any) {
       setError(err.message || 'An error occurred while analyzing assessment results');
       console.error('Assessment Analysis Error:', err);
@@ -272,18 +283,24 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
       setIsGenerating(true);
       setError(null);
       
-      const response = await makeAuthenticatedRequest('/api/ai-agents/skill-gap', {
-        method: 'POST',
-        body: JSON.stringify({
-          targetRole
-        })
-      });
+      // Mock skill gap analysis for demo
+      const mockGapAnalysis = {
+        targetRole,
+        currentSkills: ['JavaScript', 'Python', 'React'],
+        requiredSkills: ['JavaScript', 'Python', 'React', 'Node.js', 'TypeScript', 'Docker', 'AWS'],
+        missingSkills: ['Node.js', 'TypeScript', 'Docker', 'AWS'],
+        skillMatch: 43, // percentage
+        recommendations: [
+          'Start with TypeScript as it builds on your JavaScript knowledge',
+          'Learn Node.js to become a full-stack developer',
+          'Get familiar with Docker for containerization',
+          'Begin with AWS fundamentals for cloud deployment'
+        ],
+        estimatedTimeToReady: '4-6 months',
+        priorityOrder: ['TypeScript', 'Node.js', 'Docker', 'AWS']
+      };
 
-      if (response.success) {
-        return response.data;
-      } else {
-        throw new Error(response.message || 'Failed to analyze skill gaps');
-      }
+      return mockGapAnalysis;
     } catch (err: any) {
       setError(err.message || 'An error occurred during skill gap analysis');
       console.error('Skill Gap Analysis Error:', err);
