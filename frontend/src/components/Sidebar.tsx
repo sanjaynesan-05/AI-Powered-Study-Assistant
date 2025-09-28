@@ -4,7 +4,8 @@ import {
   FileText, 
   BookOpen, 
   Star,
-  User
+  User,
+  Brain
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -20,6 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
     { icon: User, label: 'Profile', path: '/profile' },
     { icon: Bot, label: 'AI Mentor', path: '/ai-mentor' },
+    { icon: Brain, label: 'AI Learning Hub', path: '/ai-learning-hub' },
     { icon: FileText, label: 'Resume Builder', path: '/resume-builder' },
     { icon: BookOpen, label: 'Learning Path', path: '/learning-path' },
     { icon: Star, label: 'Recommendation', path: '/recommendation' },

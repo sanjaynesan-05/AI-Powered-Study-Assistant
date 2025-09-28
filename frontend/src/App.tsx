@@ -2,19 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AIAgentProvider } from './contexts/AIAgentContext';
 import { Layout } from './components/Layout';
 import { LandingPage } from './pages/LandingPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AIMentorPage } from './pages/AIMentorPage';
+import AILearningHub from './pages/AILearningHub';
 import { ResumeBuilderPage } from './pages/ResumeBuilderPage';
 import { LearningPathPage } from './pages/LearningPathPage';
 import { ContinueLearningPage } from './pages/ContinueLearningPage';
 import { RecommendationPage } from './pages/RecommendationPage';
 
 
-
-// No-op ProtectedRoute: always renders children (no auth)
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
 
 // AppContent component to handle routing and authentication state
 const AppContent: React.FC = () => {
@@ -27,6 +26,7 @@ const AppContent: React.FC = () => {
           <Route element={<Layout />}>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/ai-mentor" element={<AIMentorPage />} />
+            <Route path="/ai-learning-hub" element={<AILearningHub />} />
             <Route path="/resume-builder" element={<ResumeBuilderPage />} />
             <Route path="/learning-path" element={<LearningPathPage />} />
             <Route path="/continue-learning" element={<ContinueLearningPage />} />
@@ -66,7 +66,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <AIAgentProvider>
+          <AppContent />
+        </AIAgentProvider>
       </AuthProvider>
     </ThemeProvider>
   );

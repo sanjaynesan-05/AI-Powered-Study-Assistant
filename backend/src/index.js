@@ -14,6 +14,9 @@ app.use(express.json());
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Import AI Agent routes
+const aiAgentRoutes = require('./routes/aiAgentRoutes');
+
 // In-memory stores (for demo only)
 const users = [
   { email: 'test@example.com', password: 'password123', name: 'Test User', id: 1 }
@@ -34,10 +37,27 @@ const learningPaths = [
   { id: 2, name: 'Web Dev Path', steps: ['HTML/CSS', 'JavaScript', 'React'] }
 ];
 
+// Simple auth middleware for protected routes
+const protect = (req, res, next) => {
+  // For demo, just add a mock user to request
+  req.user = {
+    _id: '1',
+    name: 'Test User',
+    email: 'test@example.com',
+    skills: ['JavaScript', 'Python'],
+    experience: 'intermediate',
+    education: 'bachelor'
+  };
+  next();
+};
+
 // Health check
 app.get('/', (req, res) => {
-  res.send('API is running (in-memory backend)');
+  res.send('AI-Powered Study Assistant API is running');
 });
+
+// Mount AI Agent routes
+app.use('/api/ai-agents', aiAgentRoutes);
 
 // Simple login route (no DB, just demo)
 app.post('/api/users/login', (req, res) => {

@@ -11,6 +11,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Import AI routes
 const aiRoutes = require('./src/routes/aiRoutes');
+const aiAgentRoutes = require('./src/routes/aiAgentRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -30,6 +31,7 @@ app.get('/health', (req, res) => {
 
 // Mount AI routes
 app.use('/api/ai', aiRoutes);
+app.use('/api/ai-agents', aiAgentRoutes);
 
 // Legacy endpoint for backward compatibility
 app.post('/api/ai-chat', async (req, res) => {
@@ -67,10 +69,12 @@ app.post('/api/ai-chat', async (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
+  console.log(`✅ Gemini AI Service initialized successfully`);
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📚 AI Study Assistant Backend ready!`);
   console.log(`🔍 Health check: http://localhost:${PORT}/health`);
   console.log(`💬 Chat API: POST http://localhost:${PORT}/api/ai-chat`);
+  console.log(`🤖 AI Agents: http://localhost:${PORT}/api/ai-agents/health`);
 });
 
 module.exports = app;
