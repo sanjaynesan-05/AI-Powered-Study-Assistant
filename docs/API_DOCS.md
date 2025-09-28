@@ -1,11 +1,11 @@
 # API Documentation
 
-This document provides details about the REST API endpoints available in the AI Mentor Platform.
+This document provides details about the REST API endpoints available in the AI-Powered Study Assistant.
 
 ## Base URL
 
 ```
-http://localhost:5000/api
+http://localhost:5001/api
 ```
 
 ## Authentication
@@ -31,7 +31,9 @@ POST /users/register
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "password": "password123"
+  "password": "password123",
+  "dateOfBirth": "1990-01-01",
+  "education": "student"
 }
 ```
 
@@ -45,9 +47,11 @@ POST /users/register
     "name": "John Doe",
     "email": "john@example.com",
     "role": "user",
-    "profilePicture": "default.jpg",
+    "profilePicture": null,
     "interests": [],
-    "skills": []
+    "skills": [],
+    "dateOfBirth": "1990-01-01",
+    "education": "student"
   }
 }
 ```
@@ -112,7 +116,14 @@ PUT /users/profile
 {
   "name": "John Doe Updated",
   "interests": ["AI", "Web Development"],
-  "skills": ["JavaScript", "React", "Node.js"]
+  "skills": ["JavaScript", "React", "Node.js"],
+  "profilePicture": "base64_encoded_image_string",
+  "bio": "Passionate developer and lifelong learner",
+  "headline": "Full Stack Developer",
+  "location": "New York, NY",
+  "phone": "+1-555-123-4567",
+  "linkedin": "https://linkedin.com/in/johndoe",
+  "github": "https://github.com/johndoe"
 }
 ```
 
@@ -125,7 +136,14 @@ PUT /users/profile
     "_id": "user_id",
     "name": "John Doe Updated",
     "interests": ["AI", "Web Development"],
-    "skills": ["JavaScript", "React", "Node.js"]
+    "skills": ["JavaScript", "React", "Node.js"],
+    "profilePicture": "base64_encoded_image_string",
+    "bio": "Passionate developer and lifelong learner",
+    "headline": "Full Stack Developer",
+    "location": "New York, NY",
+    "phone": "+1-555-123-4567",
+    "linkedin": "https://linkedin.com/in/johndoe",
+    "github": "https://github.com/johndoe"
   }
 }
 ```
@@ -135,13 +153,13 @@ PUT /users/profile
 #### Get AI Mentor Response
 
 ```
-POST /mentor/chat
+POST /ai/ask
 ```
 
 **Request Body:**
 ```json
 {
-  "message": "What career path should I take as a JavaScript developer?",
+  "prompt": "What career path should I take as a JavaScript developer?",
   "topic": "Career Guidance"
 }
 ```
@@ -150,8 +168,49 @@ POST /mentor/chat
 ```json
 {
   "success": true,
-  "response": "As a JavaScript developer, you have several career paths to consider...",
-  "topic": "Career Guidance"
+  "response": "As a JavaScript developer, you have several exciting career paths to consider...",
+  "topic": "Career Guidance",
+  "model": "gemini-2.0-flash-exp",
+  "timestamp": "2025-09-28T12:00:00.000Z"
+}
+```
+
+#### Check AI Service Health
+
+```
+GET /ai/health
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "model": "gemini-2.0-flash-exp",
+  "lastChecked": "2025-09-28T12:00:00.000Z"
+}
+```
+
+#### Get Available Topics
+
+```
+GET /ai/topics
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "topics": [
+    "General",
+    "Programming", 
+    "Career Guidance",
+    "Skill Development",
+    "Interview Preparation",
+    "Resume Review",
+    "Learning Path Suggestions",
+    "Industry Insights"
+  ]
 }
 ```
 
@@ -241,7 +300,16 @@ POST /learning-paths
 {
   "title": "My Web Development Path",
   "description": "Personalized path for web development",
-  "skills": ["JavaScript", "React", "Node.js"]
+  "skills": ["JavaScript", "React", "Node.js"],
+  "resources": [
+    {
+      "title": "Learn JavaScript Fundamentals",
+      "url": "https://example.com/js-fundamentals",
+      "type": "course",
+      "estimatedTime": "4 weeks",
+      "completed": false
+    }
+  ]
 }
 ```
 
@@ -254,10 +322,46 @@ POST /learning-paths
     "_id": "new_learning_path_id",
     "title": "My Web Development Path",
     "description": "Personalized path for web development",
-    "resources": [],
+    "resources": [
+      {
+        "title": "Learn JavaScript Fundamentals",
+        "url": "https://example.com/js-fundamentals",
+        "type": "course",
+        "estimatedTime": "4 weeks",
+        "completed": false
+      }
+    ],
     "skills": ["JavaScript", "React", "Node.js"],
-    "user": "user_id"
+    "user": "user_id",
+    "isPublic": false,
+    "createdAt": "2025-09-28T12:00:00.000Z"
   }
+}
+```
+
+#### Update Learning Path Progress
+
+```
+PUT /learning-paths/:id/progress
+```
+
+**Request Body:**
+```json
+{
+  "resourceIndex": 0,
+  "completed": true,
+  "notes": "Completed the JavaScript fundamentals course"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Progress updated successfully",
+  "completedResources": 1,
+  "totalResources": 5,
+  "completionPercentage": 20
 }
 ```
 
@@ -282,11 +386,33 @@ POST /resume/analyze
 {
   "success": true,
   "analysis": {
-    "score": 85,
-    "strengths": ["Technical skills are well presented", "Good project descriptions"],
-    "weaknesses": ["Missing quantifiable achievements", "Too lengthy"],
-    "suggestions": ["Add metrics to your achievements", "Trim down to one page"]
-  }
+    "overallScore": 85,
+    "strengths": [
+      "Technical skills are well presented",
+      "Good project descriptions",
+      "Clear professional experience"
+    ],
+    "weaknesses": [
+      "Missing quantifiable achievements",
+      "Too lengthy for the role",
+      "Could use more action verbs"
+    ],
+    "suggestions": [
+      "Add metrics to your achievements (e.g., 'Increased performance by 40%')",
+      "Trim down to one page for better readability",
+      "Include more specific technical keywords for ATS optimization"
+    ],
+    "keywordMatches": ["JavaScript", "React", "Node.js", "Git"],
+    "atsCompatibility": 78,
+    "sectionScores": {
+      "personalInfo": 90,
+      "experience": 85,
+      "education": 80,
+      "skills": 95,
+      "projects": 70
+    }
+  },
+  "timestamp": "2025-09-28T12:00:00.000Z"
 }
 ```
 
@@ -305,16 +431,26 @@ POST /resume/save
       "name": "John Doe",
       "email": "john@example.com",
       "phone": "123-456-7890",
-      "location": "New York, NY"
+      "location": "New York, NY",
+      "linkedin": "https://linkedin.com/in/johndoe",
+      "github": "https://github.com/johndoe",
+      "website": "https://johndoe.dev",
+      "summary": "Experienced full-stack developer with 5+ years in web technologies"
     },
     "experience": [
       {
-        "title": "Frontend Developer",
-        "company": "Tech Co",
+        "title": "Senior Frontend Developer",
+        "company": "Tech Solutions Inc",
         "location": "New York, NY",
         "startDate": "2020-01",
         "endDate": "2023-05",
-        "description": "Developed and maintained web applications using React"
+        "current": false,
+        "description": "Developed and maintained web applications using React and Node.js",
+        "achievements": [
+          "Increased application performance by 40%",
+          "Led team of 3 junior developers",
+          "Implemented CI/CD pipeline reducing deployment time by 60%"
+        ]
       }
     ],
     "education": [
@@ -322,10 +458,27 @@ POST /resume/save
         "degree": "BS in Computer Science",
         "institution": "University of Technology",
         "location": "Boston, MA",
-        "graduationDate": "2019-05"
+        "graduationDate": "2019-05",
+        "description": "Graduated Summa Cum Laude, GPA: 3.9/4.0"
       }
     ],
-    "skills": ["JavaScript", "React", "Node.js", "HTML/CSS"]
+    "skills": ["JavaScript", "React", "Node.js", "Python", "AWS", "Docker"],
+    "projects": [
+      {
+        "title": "E-commerce Platform",
+        "description": "Built full-stack e-commerce solution with React and Node.js",
+        "url": "https://github.com/johndoe/ecommerce",
+        "technologies": ["React", "Node.js", "MongoDB", "Stripe API"]
+      }
+    ],
+    "certifications": [
+      {
+        "name": "AWS Certified Solutions Architect",
+        "issuer": "Amazon Web Services",
+        "date": "2023-03",
+        "url": "https://aws.amazon.com/certification/"
+      }
+    ]
   }
 }
 ```
@@ -339,8 +492,47 @@ POST /resume/save
     "_id": "resume_id",
     "title": "Software Developer Resume",
     "user": "user_id",
-    "content": {...}
+    "content": {
+      // ... (same as request body)
+    },
+    "createdAt": "2025-09-28T12:00:00.000Z",
+    "updatedAt": "2025-09-28T12:00:00.000Z"
   }
+}
+```
+
+#### Get User Resumes
+
+```
+GET /resume/user-resumes
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "resumes": [
+    {
+      "_id": "resume_id_1",
+      "title": "Software Developer Resume",
+      "createdAt": "2025-09-28T12:00:00.000Z",
+      "updatedAt": "2025-09-28T12:00:00.000Z",
+      "analysis": {
+        "overallScore": 85,
+        "lastAnalyzed": "2025-09-28T12:00:00.000Z"
+      }
+    },
+    {
+      "_id": "resume_id_2", 
+      "title": "Frontend Developer Resume",
+      "createdAt": "2025-09-27T10:00:00.000Z",
+      "updatedAt": "2025-09-27T10:00:00.000Z",
+      "analysis": {
+        "overallScore": 78,
+        "lastAnalyzed": "2025-09-27T10:00:00.000Z"
+      }
+    }
+  ]
 }
 ```
 
@@ -358,7 +550,24 @@ All endpoints return standardized error responses:
 
 Common HTTP status codes:
 
-- `400` - Bad Request
-- `401` - Unauthorized
+- `400` - Bad Request (validation errors, missing required fields)
+- `401` - Unauthorized (invalid or missing JWT token)
+- `403` - Forbidden (insufficient permissions)
 - `404` - Resource Not Found
-- `500` - Server Error
+- `429` - Too Many Requests (rate limiting)
+- `500` - Internal Server Error
+
+## Rate Limiting
+
+API endpoints implement rate limiting to prevent abuse:
+
+- **Authentication endpoints**: 5 requests per 15 minutes per IP
+- **AI chat endpoints**: 30 requests per minute per user
+- **General API endpoints**: 100 requests per minute per user
+
+Rate limit headers are included in responses:
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1695904800
+```
