@@ -3,6 +3,8 @@ import { useAIAgent } from '../contexts/AIAgentContext';
 import { useAuth } from '../contexts/AuthContext';
 import { advancedAILearningService, LearningObjective, EnhancedTopic } from '../services/advancedAILearningService';
 import { youtubeService, YouTubeVideo } from '../services/youtubeService';
+import { enhancedLearningPathService, EnhancedLearningPath } from '../services/enhancedLearningPathService';
+import StepByStepLearningPath from '../components/StepByStepLearningPath';
 import { 
   Brain, 
   BookOpen, 
@@ -48,6 +50,12 @@ const AILearningHub: React.FC = () => {
   // Form states
   const [selectedSkill, setSelectedSkill] = useState('');
   const [skillInput, setSkillInput] = useState('');
+  
+  // Enhanced learning path states
+  const [enhancedLearningPath, setEnhancedLearningPath] = useState<EnhancedLearningPath | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [showEnhancedPath, setShowEnhancedPath] = useState(false);
+  const [loadingEnhancedPath, setLoadingEnhancedPath] = useState(false);
   const [difficulty, setDifficulty] = useState('beginner');
   const [preferences, setPreferences] = useState({
     timeCommitment: 10,
@@ -172,10 +180,13 @@ const AILearningHub: React.FC = () => {
     }
   ]);
 
-  const popularSkills = [
-    'JavaScript', 'Python', 'React', 'Machine Learning', 
-    'Data Science', 'DevOps', 'Digital Marketing', 'UI/UX Design',
-    'Node.js', 'Cloud Computing', 'Cybersecurity', 'Blockchain'
+  // Get supported skills from enhanced learning path service
+  const popularSkills = enhancedLearningPathService.getSupportedSkills();
+  
+  // Additional skills that don't have enhanced paths yet
+  const additionalSkills = [
+    'DevOps', 'Digital Marketing', 'UI/UX Design', 
+    'Cloud Computing', 'Cybersecurity', 'Blockchain'
   ];
 
   useEffect(() => {
@@ -234,7 +245,17 @@ const AILearningHub: React.FC = () => {
     if (!selectedSkill && !skillInput) return;
     
     const targetSkill = selectedSkill || skillInput;
-    await generateCompleteJourney(targetSkill, preferences);
+    
+    // Check if skill is supported for enhanced learning path
+    if (enhancedLearningPathService.isSkillSupported(targetSkill)) {
+      // Show level selection modal or use default 'Beginner'
+      const level = difficulty === 'beginner' ? 'Beginner' : 
+                   difficulty === 'intermediate' ? 'Intermediate' : 'Advanced';
+      await generateEnhancedPath(targetSkill, level);
+    } else {
+      // Fallback to regular AI journey generation
+      await generateCompleteJourney(targetSkill, preferences);
+    }
   };
 
   const handleGenerateLearningPath = async () => {
@@ -294,6 +315,34 @@ const AILearningHub: React.FC = () => {
     setUserAnswers([]);
     setShowResults(false);
     setAssessmentResults(null);
+  };
+
+  // Enhanced Learning Path Functions
+  const generateEnhancedPath = async (skill: string, level: 'Beginner' | 'Intermediate' | 'Advanced' = 'Beginner') => {
+    setLoadingEnhancedPath(true);
+    try {
+      const path = await enhancedLearningPathService.generateEnhancedLearningPath(skill, level);
+      setEnhancedLearningPath(path);
+      setShowEnhancedPath(true);
+      setCompletedSteps([]); // Reset completed steps
+    } catch (error) {
+      console.error('Error generating enhanced learning path:', error);
+      // Show error message to user
+      alert(`Unable to generate enhanced path for ${skill}. This skill may not be supported yet.`);
+    }
+    setLoadingEnhancedPath(false);
+  };
+
+  const handleStepComplete = (stepId: string) => {
+    if (!completedSteps.includes(stepId)) {
+      setCompletedSteps([...completedSteps, stepId]);
+    }
+  };
+
+  const handleBackToSkillSelection = () => {
+    setShowEnhancedPath(false);
+    setEnhancedLearningPath(null);
+    setCompletedSteps([]);
   };
 
   // Enhanced Learning Path Functions
@@ -466,6 +515,38 @@ const AILearningHub: React.FC = () => {
     );
   }
 
+  // Show Enhanced Learning Path if active
+  if (showEnhancedPath && enhancedLearningPath) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <button
+            onClick={handleBackToSkillSelection}
+            className="flex items-center space-x-2 text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Skill Selection</span>
+          </button>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-5 h-5 text-yellow-500" />
+              <span className="font-medium">Enhanced Learning Path</span>
+            </div>
+            <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+              {enhancedLearningPath.skill}
+            </div>
+          </div>
+        </div>
+        
+        <StepByStepLearningPath
+          learningPath={enhancedLearningPath}
+          onStepComplete={handleStepComplete}
+          completedSteps={completedSteps}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header */}
@@ -521,9 +602,34 @@ const AILearningHub: React.FC = () => {
               
               {/* Popular Skills */}
               <div className="space-y-2">
-                <p className="text-sm text-gray-600">Popular Skills:</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">Popular Skills:</p>
+                  <div className="flex items-center space-x-1 text-xs text-yellow-600">
+                    <Sparkles className="w-3 h-3" />
+                    <span>Enhanced paths available</span>
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {popularSkills.map((skill) => (
+                    <button
+                      key={skill}
+                      onClick={() => {
+                        setSelectedSkill(selectedSkill === skill ? '' : skill);
+                        setSkillInput('');
+                      }}
+                      className={`relative px-3 py-1 rounded-full text-sm border transition-colors ${
+                        selectedSkill === skill
+                          ? 'bg-blue-100 border-blue-300 text-blue-700'
+                          : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {skill}
+                      {enhancedLearningPathService.isSkillSupported(skill) && (
+                        <Sparkles className="w-3 h-3 inline ml-1 text-yellow-500" />
+                      )}
+                    </button>
+                  ))}
+                  {additionalSkills.map((skill) => (
                     <button
                       key={skill}
                       onClick={() => {
@@ -638,25 +744,38 @@ const AILearningHub: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
-                    <span>Generate AI-Enhanced Journey</span>
+                    {enhancedLearningPathService.isSkillSupported(selectedSkill || skillInput) ? (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        <span>Generate Enhanced Learning Path</span>
+                      </>
+                    ) : (
+                      <>
+                        <Target className="h-4 w-4" />
+                        <span>Generate AI Journey</span>
+                      </>
+                    )}
                   </>
                 )}
               </button>
 
               <button 
                 onClick={handleGenerateJourney}
-                disabled={isGenerating || (!selectedSkill && !skillInput)}
+                disabled={isGenerating || loadingEnhancedPath || (!selectedSkill && !skillInput)}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${
-                  isGenerating || (!selectedSkill && !skillInput)
+                  isGenerating || loadingEnhancedPath || (!selectedSkill && !skillInput)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : enhancedLearningPathService.isSkillSupported(selectedSkill || skillInput)
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {isGenerating ? (
+                {isGenerating || loadingEnhancedPath ? (
                   <>
                     <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    <span>Generating Journey...</span>
+                    <span>
+                      {loadingEnhancedPath ? 'Creating Enhanced Path...' : 'Generating Journey...'}
+                    </span>
                   </>
                 ) : (
                   <>
