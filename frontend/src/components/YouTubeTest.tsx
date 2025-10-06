@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { youtubeService, YouTubeVideo } from '../services/youtubeService';
 
 const YouTubeTest: React.FC = () => {
@@ -8,17 +8,25 @@ const YouTubeTest: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('JavaScript programming');
 
   const testYouTubeAPI = async () => {
+    if (!searchQuery.trim()) {
+      setError('Please enter a search query');
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('Testing YouTube API with query:', searchQuery);
       console.log('API Key available:', import.meta.env.VITE_YOUTUBE_API_KEY ? 'Yes' : 'No');
-      
-      const result = await youtubeService.searchEducationalVideos({ query: searchQuery, maxResults: 5 });
+
+      const result = await youtubeService.searchEducationalVideos({
+        query: searchQuery,
+        maxResults: 6,
+      });
+
       console.log('YouTube API result:', result);
-      
-      setVideos(result);
+      setVideos(result || []);
     } catch (err: any) {
       console.error('YouTube API test error:', err);
       setError(err.message || 'Failed to fetch videos');
@@ -27,72 +35,94 @@ const YouTubeTest: React.FC = () => {
     }
   };
 
+  const checkApiStatus = async () => {
+    try {
+      const hasApiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+      if (!hasApiKey) {
+        setError('YouTube API key not configured');
+        return;
+      }
+
+      const testResult = await youtubeService.searchEducationalVideos({
+        query: 'test',
+        maxResults: 1,
+      });
+
+      if (testResult && testResult.length >= 0) {
+        console.log('API is working');
+      }
+    } catch (err: any) {
+      console.error('API status check failed:', err);
+      setError(`API Error: ${err.message}`);
+    }
+  };
+
+  useEffect(() => {
+    checkApiStatus();
+  }, []);
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">YouTube API Test</h2>
-      
-      <div className="mb-4">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Enter search query"
-          className="px-3 py-2 border rounded mr-2 w-64"
-        />
-        <button
-          onClick={testYouTubeAPI}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-        >
-          {loading ? 'Testing...' : 'Test YouTube API'}
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold text-center mb-8">YouTube API Integration Test</h1>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          Error: {error}
-        </div>
-      )}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="flex gap-4 mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Enter search query"
+              className="flex-1 px-4 py-2 border rounded-lg"
+            />
+            <button
+              onClick={testYouTubeAPI}
+              disabled={loading}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50"
+            >
+              {loading ? 'Searching...' : 'Search Videos'}
+            </button>
+          </div>
 
-      <div className="mb-4 text-sm text-gray-600">
-        <p>Environment Variables Status:</p>
-        <ul className="list-disc list-inside">
-          <li>YouTube API Key: {import.meta.env.VITE_YOUTUBE_API_KEY ? '✅ Available' : '❌ Missing'}</li>
-          <li>Backend URL: {import.meta.env.VITE_BACKEND_URL || 'Not set'}</li>
-        </ul>
-      </div>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              Error: {error}
+            </div>
+          )}
 
-      {videos.length > 0 && (
-        <div>
-          <h3 className="text-xl font-semibold mb-3">Search Results ({videos.length} videos):</h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {videos.map((video, index) => (
-              <div key={video.id || index} className="border rounded-lg p-4 shadow">
-                {video.thumbnailUrl && (
-                  <img
+          {videos.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {videos.map((video) => (
+                <div key={video.id} className="bg-white rounded-lg shadow overflow-hidden">
+                  <img 
                     src={video.thumbnailUrl}
                     alt={video.title}
-                    className="w-full h-32 object-cover rounded mb-2"
+                    className="w-full h-48 object-cover"
                   />
-                )}
-                <h4 className="font-semibold text-sm mb-1 line-clamp-2">{video.title}</h4>
-                <p className="text-xs text-gray-600 mb-2">{video.channelTitle}</p>
-                <p className="text-xs text-gray-500 line-clamp-2">{video.description}</p>
-                <div className="mt-2">
-                  <a
-                    href={`https://www.youtube.com/watch?v=${video.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:text-blue-700 text-xs"
-                  >
-                    Watch on YouTube →
-                  </a>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">{video.title}</h3>
+                    <p className="text-xs text-gray-600 mb-2">{video.channelTitle}</p>
+                    <a 
+                      href={video.videoUrl}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline text-sm"
+                    >
+                      Watch Video
+                    </a>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="mt-8 p-4 bg-gray-100 rounded text-sm">
+          <h3 className="font-semibold mb-2">Debug Info:</h3>
+          <p>API Key: {import.meta.env.VITE_YOUTUBE_API_KEY ? '✅ Available' : '❌ Missing'}</p>
+          <p>Videos Found: {videos.length}</p>
+        </div>
+      </div>
     </div>
   );
 };

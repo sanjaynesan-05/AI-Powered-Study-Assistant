@@ -2,20 +2,35 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const http = require('http');
+const socketIo = require('socket.io');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
 app.use(cors());
 app.use(express.json());
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Import AI Agent routes
+// Import database connection
+const connectDB = require('./config/db');
+
+// Import routes
 const aiAgentRoutes = require('./routes/aiAgentRoutes');
+const progressRoutes = require('./routes/progressRoutes');
 
 // In-memory stores (for demo only)
 const users = [
@@ -56,8 +71,53 @@ app.get('/', (req, res) => {
   res.send('AI-Powered Study Assistant API is running');
 });
 
-// Mount AI Agent routes
+// Mount routes
 app.use('/api/ai-agents', aiAgentRoutes);
+app.use('/api', progressRoutes);
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  // Handle user authentication
+  socket.on('authenticate', (userData) => {
+    socket.userId = userData.userId;
+    socket.join(`user_${userData.userId}`);
+    console.log(`User ${userData.userId} authenticated`);
+  });
+
+  // Handle learning progress updates
+  socket.on('progress_update', (data) => {
+    // Broadcast to user's room
+    io.to(`user_${socket.userId}`).emit('progress_updated', data);
+  });
+
+  // Handle AI interaction events
+  socket.on('ai_interaction', (data) => {
+    // Broadcast AI interaction to user's room
+    io.to(`user_${socket.userId}`).emit('ai_response', data);
+  });
+
+  // Handle video watch events
+  socket.on('video_watch', (data) => {
+    // Broadcast video progress to user's room
+    io.to(`user_${socket.userId}`).emit('video_progress_updated', data);
+  });
+
+  // Handle study session events
+  socket.on('study_session_start', (data) => {
+    io.to(`user_${socket.userId}`).emit('session_started', data);
+  });
+
+  socket.on('study_session_end', (data) => {
+    io.to(`user_${socket.userId}`).emit('session_ended', data);
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
 
 // Simple login route (no DB, just demo)
 app.post('/api/users/login', (req, res) => {
@@ -185,7 +245,8 @@ app.post('/api/smart-recommendations', async (req, res) => {
   }
 });
 
-const PORT = 5001;
-app.listen(PORT, () => {
-  console.log(`Lightweight backend running on port ${PORT}`);
+const PORT = process.env.PORT || 5001;
+server.listen(PORT, () => {
+  console.log(`AI-Powered Study Assistant backend running on port ${PORT}`);
+  console.log(`WebSocket server enabled`);
 });

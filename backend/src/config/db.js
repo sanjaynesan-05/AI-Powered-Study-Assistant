@@ -1,18 +1,17 @@
-const mongoose = require('mongoose');
+const { sequelize } = require('./database');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      // These options help with connection stability
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    await sequelize.authenticate();
+    console.log('PostgreSQL Connected successfully');
+    
+    // Sync database tables (create tables if they don't exist)
+    if (process.env.NODE_ENV === 'development') {
+      await sequelize.sync({ alter: true });
+      console.log('Database synchronized');
+    }
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    console.error('Unable to connect to PostgreSQL database:', error.message);
     process.exit(1);
   }
 };
