@@ -4,14 +4,85 @@ This guide provides instructions on how to use the AI-Powered Study Assistant ef
 
 ## Table of Contents
 
-1. [Getting Started](#getting-started)
-2. [Responsive Design Features](#responsive-design-features)
-3. [AI Mentor Chat](#ai-mentor-chat)
-4. [Learning Paths](#learning-paths)
-5. [Resume Analysis](#resume-analysis)
-6. [Resume Builder](#resume-builder)
-7. [Professional Profile Management](#professional-profile-management)
-8. [Mobile Experience](#mobile-experience)
+1. [Installation and Setup](#installation-and-setup)
+2. [Getting Started](#getting-started)
+3. [Responsive Design Features](#responsive-design-features)
+4. [AI Mentor Chat](#ai-mentor-chat)
+5. [Learning Paths](#learning-paths)
+6. [Resume Analysis](#resume-analysis)
+7. [Resume Builder](#resume-builder)
+8. [Professional Profile Management](#professional-profile-management)
+9. [Mobile Experience](#mobile-experience)
+10. [Troubleshooting](#troubleshooting)
+10. [Troubleshooting](#troubleshooting)
+
+## Installation and Setup
+
+### Prerequisites
+- Node.js (v18 or higher)
+- PostgreSQL database
+- Git
+
+### Local Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/sanjaynesan-05/AI-Powered-Study-Assistant.git
+   cd AI-Powered-Study-Assistant
+   ```
+
+2. **Set up PostgreSQL**
+   - Install PostgreSQL from https://www.postgresql.org/download/
+   - Create a database named `ai_study_assistant`
+   - Default credentials: user `postgres`, password `postgres`
+
+3. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   ```
+   
+   The `.env` file should already be configured with:
+   - `GEMINI_API_KEY` for AI functionality
+   - PostgreSQL database credentials
+   - JWT secret for authentication
+
+4. **Frontend Setup**
+   ```bash
+   cd ../frontend
+   npm install
+   ```
+
+### Running the Application
+
+1. **Start the Backend**
+   ```bash
+   cd backend
+   npm run dev
+   ```
+   The backend will run on http://localhost:5001
+
+2. **Start the Frontend**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   The frontend will run on http://localhost:5173
+
+3. **Alternative: Use the startup script**
+   ```bash
+   # On Windows
+   start_services.bat
+   
+   # On Linux/Mac
+   ./start_services.sh
+   ```
+
+### Current Status Notes
+- The application uses PostgreSQL as the primary database
+- AI features require a valid Google Gemini API key
+- The backend may fail to start if PostgreSQL is not running or credentials are incorrect
+- Ensure all environment variables in `backend/.env` are properly set
 
 ## Getting Started
 
@@ -255,3 +326,71 @@ Manage your professional profile with a LinkedIn-inspired design that works beau
 - Smooth scrolling and animations
 - Efficient data usage
 - Offline-friendly caching where possible
+
+## Troubleshooting
+
+### Backend Won't Start
+**Issue**: Backend server fails to start with exit code 1
+
+**Possible Causes & Solutions**:
+1. **PostgreSQL not running**
+   - Ensure PostgreSQL service is started
+   - Check if database `ai_study_assistant` exists
+   - Verify database credentials in `backend/.env`
+
+2. **Missing environment variables**
+   - Check that `GEMINI_API_KEY` is set in `backend/.env`
+   - Ensure `DATABASE_PASSWORD` matches your PostgreSQL setup
+
+3. **Port already in use**
+   - Check if port 5001 is available
+   - Kill any process using the port: `netstat -ano | findstr :5001`
+
+4. **Dependencies not installed**
+   - Run `npm install` in the backend directory
+
+### Frontend Won't Load
+**Issue**: Frontend development server fails or pages don't load
+
+**Solutions**:
+1. **Dependencies missing**: Run `npm install` in frontend directory
+2. **Port conflict**: Ensure port 5173 is available
+3. **Backend not running**: Make sure backend is running on port 5001
+
+### AI Features Not Working
+**Issue**: AI chat or analysis features return errors
+
+**Solutions**:
+1. **Invalid API key**: Verify `GEMINI_API_KEY` in `backend/.env`
+2. **API quota exceeded**: Check Google AI Studio for usage limits
+3. **Network issues**: Ensure internet connection for AI requests
+
+### Database Connection Issues
+**Issue**: Application can't connect to database
+
+**Solutions**:
+1. **PostgreSQL not installed**: Install PostgreSQL and create the database
+2. **Wrong credentials**: Update `backend/.env` with correct database settings
+3. **Database not created**: Run `createdb ai_study_assistant` in PostgreSQL
+
+### Common Commands
+```bash
+# Check if PostgreSQL is running
+pg_isready -h localhost -p 5432
+
+# Check backend health
+curl http://localhost:5001/health
+
+# Check frontend build
+cd frontend && npm run build
+
+# Reset database (caution: deletes data)
+cd backend && npm run migrate
+```
+
+### Getting Help
+If you continue to experience issues:
+1. Check the console logs for detailed error messages
+2. Verify all prerequisites are installed
+3. Ensure environment variables are correctly set
+4. Refer to the [Complete Master Guide](COMPLETE_MASTER_GUIDE.md) for detailed setup instructions

@@ -1,0 +1,9 @@
+async-generator
+mcp>=0.1.0
+google-generativeai
+google-cloud-bigquery
+google-cloud-aiplatform
+hume>=0.7.0
+requests
+python-multipart
+fastapi
