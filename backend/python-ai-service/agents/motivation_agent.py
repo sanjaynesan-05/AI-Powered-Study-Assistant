@@ -42,18 +42,126 @@ class MotivationAgent:
             ]
         }
     def generate_motivational_response(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate personalized motivational content based on context."""
+        """Generate personalized motivational content based on context using Gemini AI."""
+        try:
+            # Extract user input from context
+            challenges = context.get("challenges", [])
+            user_prompt = challenges[0] if challenges else context.get("prompt", "")
+            current_mood = context.get("current_mood", "neutral")
+            goals = context.get("goals", [])
+            achievements = context.get("achievements", [])
+
+            if user_prompt:
+                # Use Gemini to generate conversational response
+                return self._generate_chat_response(user_prompt, current_mood, goals, achievements)
+            else:
+                # Fallback to static motivational content
+                return self._generate_static_motivation(context)
+
+        except Exception as e:
+            print(f"Error generating AI response: {e}")
+            return self._generate_static_motivation(context)
+
+    def _generate_chat_response(self, user_prompt: str, current_mood: str, goals: List[str], achievements: List[str]) -> Dict[str, Any]:
+        """Generate AI-powered chat response using Gemini."""
+        try:
+            # Create context-aware prompt for Gemini
+            context_prompt = f"""
+You are an AI Study Mentor - a friendly, encouraging, and knowledgeable tutor who helps students with their learning journey.
+
+USER CONTEXT:
+- Current mood: {current_mood}
+- Learning goals: {', '.join(goals) if goals else 'General learning'}
+- Recent achievements: {', '.join(achievements) if achievements else 'Building knowledge'}
+
+USER QUESTION/MESSAGE: {user_prompt}
+
+Please provide a helpful, encouraging response that:
+1. Directly addresses their question or concern
+2. Provides relevant learning advice or information
+3. Maintains a supportive and motivating tone
+4. If appropriate, suggests next steps or resources
+5. Keeps the response conversational and natural
+
+Response should be comprehensive but not overwhelming - aim for 2-4 paragraphs maximum.
+"""
+
+            print(f"🤖 Sending to Gemini: {context_prompt[:200]}...")
+
+            # Generate response using Gemini
+            response = self.model.generate_content(context_prompt)
+            ai_response = response.text.strip()
+
+            print(f"🤖 Gemini Response: {ai_response[:200]}...")
+
+            # Extract key information for structured response
+            return {
+                "primary_message": ai_response,
+                "motivational_message": ai_response,
+                "response_type": "chat_response",
+                "context": {
+                    "mood": current_mood,
+                    "goals": goals,
+                    "achievements": achievements
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"❌ Gemini API error: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback to static response
+            return self._generate_fallback_chat_response(user_prompt, current_mood)
+
+    def _generate_fallback_chat_response(self, user_prompt: str, current_mood: str) -> Dict[str, Any]:
+        """Generate fallback chat response when Gemini is unavailable."""
+        # More intelligent fallback responses based on user input
+        prompt_lower = user_prompt.lower()
+
+        if "python" in prompt_lower or "programming" in prompt_lower:
+            response_text = "I'd love to help you with Python programming! Python is a great language to start with. You can begin by installing Python from python.org, then try some basic tutorials. What specific aspect of Python are you interested in - syntax, data structures, or building projects?"
+        elif "javascript" in prompt_lower or "js" in prompt_lower:
+            response_text = "JavaScript is fantastic for web development! Start with the basics of variables, functions, and DOM manipulation. FreeCodeCamp and MDN Web Docs have excellent resources. What would you like to build with JavaScript?"
+        elif "help" in prompt_lower or "how" in prompt_lower:
+            response_text = "I'm here to help you with your learning journey! I can assist with programming concepts, study techniques, career guidance, and staying motivated. What specific topic or question do you have in mind?"
+        elif "start" in prompt_lower or "begin" in prompt_lower:
+            response_text = "Starting a new learning journey is exciting! The key is to start small and be consistent. Set achievable goals, create a study schedule, and don't be afraid to ask questions. What subject are you looking to begin learning?"
+        else:
+            base_responses = {
+                "focused": f"I can see you're focused and ready to learn! That's a great mindset. Regarding your question about '{user_prompt}', I'd recommend breaking it down into smaller, manageable steps. How can I help you get started?",
+                "tired": f"I notice you might be feeling tired, but you're still reaching out for help - that's commendable! When you're rested, we can tackle '{user_prompt}' together. For now, remember that quality learning happens when you're well-rested.",
+                "stressed": f"Learning can be stressful sometimes, but you're taking a positive step by asking for help. Let's take this one step at a time. Regarding '{user_prompt}', we can work through this together at a pace that feels comfortable.",
+                "confused": f"It's completely normal to feel confused when learning something new. That's actually a sign that you're engaging deeply with the material. About '{user_prompt}' - let's break this down into simpler concepts.",
+                "happy": f"Great to see you're in a positive mood for learning! That enthusiasm will carry you far. I'm excited to help you with '{user_prompt}'. What aspect would you like to explore first?",
+                "neutral": f"I'm here to support your learning journey! Regarding '{user_prompt}', I can provide guidance, resources, and encouragement. What specific area would you like to focus on?"
+            }
+            response_text = base_responses.get(current_mood, base_responses["neutral"])
+
+        return {
+            "primary_message": response_text,
+            "motivational_message": response_text,
+            "response_type": "fallback_chat",
+            "context": {"mood": current_mood},
+            "timestamp": datetime.now().isoformat(),
+            "note": "Using intelligent fallback - Gemini API key needs to be configured for full AI responses"
+        }
+
+    def _generate_static_motivation(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate static motivational content (original implementation)."""
         performance_level = context.get("performance_level", "good_performance")
         emotional_state = context.get("emotional_state", "neutral")
         fatigue_level = context.get("fatigue_level", 0.3)
         progress_milestone = context.get("progress_milestone", False)
+
         response = {
             "primary_message": self._get_primary_message(performance_level, emotional_state),
             "affirmation": random.choice(self.affirmations),
             "encouragement": self._generate_encouragement(performance_level, emotional_state),
             "progress_celebration": self._celebrate_progress(context),
             "support_elements": self._provide_support(fatigue_level, emotional_state),
-            "next_goal": self._suggest_next_goal(context)
+            "next_goal": self._suggest_next_goal(context),
+            "response_type": "static_motivation"
         }
         return response
     def _get_primary_message(self, performance_level: str, emotional_state: str) -> str:
@@ -294,13 +402,13 @@ def generate_motivation(request_data: Dict[str, Any]) -> Dict[str, Any]:
     """Main function expected by Flask server for generating motivation."""
     import os
     api_key = os.getenv('GEMINI_API_KEY', 'dummy_key')
-    
+
     # Extract parameters from request
     current_mood = request_data.get('current_mood', 'neutral')
     challenges = request_data.get('challenges', [])
     goals = request_data.get('goals', [])
     achievements = request_data.get('achievements', [])
-    
+
     # Create context for motivation agent
     context = {
         "emotional_state": current_mood,
@@ -311,5 +419,37 @@ def generate_motivation(request_data: Dict[str, Any]) -> Dict[str, Any]:
         "fatigue_level": 0.3,
         "progress_milestone": len(achievements) > 0
     }
-    
-    return get_motivational_support(context, api_key)
+
+    # Handle case where there's a specific prompt/question
+    if challenges and len(challenges) > 0:
+        context["prompt"] = challenges[0]
+
+    try:
+        agent = MotivationAgent(api_key)
+        response = agent.generate_motivational_response(context)
+
+        print(f"🤖 Agent response: {response}")
+
+        # Format response for frontend compatibility
+        formatted_response = {
+            "motivational_message": response.get("primary_message", "I'm here to help you with your learning journey!"),
+            "affirmation": response.get("affirmation", ""),
+            "encouragement": response.get("encouragement", {}),
+            "support_elements": response.get("support_elements", []),
+            "response_type": response.get("response_type", "chat_response"),
+            "timestamp": response.get("timestamp", datetime.now().isoformat())
+        }
+
+        print(f"📤 Formatted response: {formatted_response}")
+        return formatted_response
+    except Exception as e:
+        print(f"Error in generate_motivation: {e}")
+        # Fallback response
+        return {
+            "motivational_message": "I'm here to support your learning journey! What would you like to know or discuss?",
+            "affirmation": "You're taking positive steps toward your goals.",
+            "encouragement": {"immediate": "Keep going!", "long_term": "Every step counts."},
+            "support_elements": [{"type": "general", "message": "Learning is a process - be patient with yourself."}],
+            "response_type": "fallback",
+            "timestamp": datetime.now().isoformat()
+        }

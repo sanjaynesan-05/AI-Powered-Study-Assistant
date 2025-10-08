@@ -1,5 +1,6 @@
 // Advanced AI Learning Agent Service
 import { youtubeService, YouTubeVideo } from './youtubeService';
+import { PYTHON_AI_CONFIG } from '../config/config';
 
 interface LearningObjective {
   skill: string;
@@ -58,35 +59,49 @@ interface AssessmentQuestion {
 }
 
 class AdvancedAILearningService {
-  private aiAgentEndpoint = 'http://localhost:5001/api/ai-agents';
+  private baseUrl: string;
+  private timeout: number;
+
+  constructor() {
+    // Updated to use Python Flask backend
+    this.baseUrl = PYTHON_AI_CONFIG.BASE_URL;
+    this.timeout = 30000; // 30 seconds timeout
+  }
 
   // Generate comprehensive learning path with AI
   async generateIntelligentLearningPath(objective: LearningObjective): Promise<EnhancedTopic[]> {
     try {
-      // Step 1: Use AI to analyze learning objective
-      const analysisResponse = await this.makeAIRequest('/analyze-learning-objective', {
-        objective,
-        includePrerequisites: true,
-        includeProgressionPath: true,
-        includeTimeEstimates: true
+      // Use Python backend learning resources endpoint
+      const response = await this.makeAIRequest(PYTHON_AI_CONFIG.ENDPOINTS.LEARNING_RESOURCES, {
+        skill: objective.skill,
+        current_level: objective.currentLevel,
+        target_level: objective.targetLevel,
+        learning_style: objective.learningStyle,
+        career_goals: objective.careerGoals,
+        timeframe: objective.timeframe,
+        include_videos: true,
+        include_articles: true,
+        include_exercises: true,
+        include_assessment: true
       });
 
-      // Step 2: Generate topic structure with AI
-      const topicsResponse = await this.makeAIRequest('/generate-topic-structure', {
-        analysis: analysisResponse.data,
-        detailLevel: 'comprehensive',
-        includeAssessments: true
-      });
+      // Transform Python backend response to EnhancedTopic format
+      const enhancedTopics: EnhancedTopic[] = response.data?.topics?.map((topic: any) => ({
+        id: topic.id || `topic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        title: topic.title || topic.name,
+        description: topic.description || `Master ${topic.title || topic.name} concepts`,
+        difficulty: topic.difficulty || objective.currentLevel,
+        estimatedTime: topic.estimated_time || topic.time_estimate || this.calculateEstimatedTime(topic.title || topic.name),
+        prerequisites: topic.prerequisites || [],
+        learningOutcomes: topic.learning_outcomes || this.generateLearningOutcomes(topic.title || topic.name),
+        videos: topic.videos || [],
+        articles: topic.articles || [],
+        exercises: topic.exercises || [],
+        assessmentQuestions: topic.assessment_questions || [],
+        nextTopics: topic.next_topics || []
+      })) || [];
 
-      // Step 3: Enhance each topic with multimedia resources
-      const enhancedTopics: EnhancedTopic[] = [];
-      
-      for (const topic of topicsResponse.data.topics) {
-        const enhancedTopic = await this.enhanceTopicWithResources(topic, objective);
-        enhancedTopics.push(enhancedTopic);
-      }
-
-      return enhancedTopics;
+      return enhancedTopics.length > 0 ? enhancedTopics : this.getFallbackLearningPath(objective.skill);
 
     } catch (error) {
       console.error('AI Learning Path Generation Error:', error);
@@ -94,81 +109,7 @@ class AdvancedAILearningService {
     }
   }
 
-  // Enhance topic with AI-curated resources
-  private async enhanceTopicWithResources(topic: any, objective: LearningObjective): Promise<EnhancedTopic> {
-    try {
-      // Get AI-curated video recommendations
-      const videos = await youtubeService.searchEducationalVideos({
-        query: `${topic.title} ${objective.skill} tutorial`,
-        maxResults: 3,
-        duration: 'medium'
-      });
-
-      // Get AI-curated article recommendations
-      const articles = await this.getAICuratedArticles(topic.title, objective.skill);
-
-      // Generate AI-powered exercises
-      const exercises = await this.generateAIExercises(topic, objective);
-
-      // Generate AI assessment questions
-      const assessmentQuestions = await this.generateAIAssessment(topic, objective);
-
-      return {
-        id: topic.id || `topic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        title: topic.title,
-        description: topic.description || `Master ${topic.title} concepts and practical applications`,
-        difficulty: topic.difficulty || objective.currentLevel,
-        estimatedTime: topic.estimatedTime || this.calculateEstimatedTime(topic.title),
-        prerequisites: topic.prerequisites || [],
-        learningOutcomes: topic.learningOutcomes || this.generateLearningOutcomes(topic.title),
-        videos,
-        articles,
-        exercises,
-        assessmentQuestions,
-        nextTopics: topic.nextTopics || []
-      };
-
-    } catch (error) {
-      console.error('Topic enhancement error:', error);
-      return this.createFallbackTopic(topic);
-    }
-  }
-
-  // Generate AI-powered exercises
-  private async generateAIExercises(topic: any, objective: LearningObjective): Promise<Exercise[]> {
-    try {
-      const response = await this.makeAIRequest('/generate-exercises', {
-        topic: topic.title,
-        skill: objective.skill,
-        difficulty: topic.difficulty || objective.currentLevel,
-        learningStyle: objective.learningStyle,
-        count: 3
-      });
-
-      return response.data.exercises || this.getFallbackExercises(topic.title);
-    } catch (error) {
-      return this.getFallbackExercises(topic.title);
-    }
-  }
-
-  // Generate AI assessment questions
-  private async generateAIAssessment(topic: any, objective: LearningObjective): Promise<AssessmentQuestion[]> {
-    try {
-      const response = await this.makeAIRequest('/generate-assessment', {
-        topic: topic.title,
-        skill: objective.skill,
-        difficulty: topic.difficulty || objective.currentLevel,
-        questionCount: 5,
-        questionTypes: ['multiple_choice', 'short_answer', 'coding']
-      });
-
-      return response.data.questions || this.getFallbackAssessmentQuestions(topic.title);
-    } catch (error) {
-      return this.getFallbackAssessmentQuestions(topic.title);
-    }
-  }
-
-  // Get AI-curated articles
+  // Get AI-curated articles (fallback method)
   private async getAICuratedArticles(topicTitle: string, skill: string): Promise<ArticleResource[]> {
     const curatedArticles: Record<string, ArticleResource[]> = {
       'javascript': [
@@ -230,17 +171,18 @@ class AdvancedAILearningService {
   // AI-powered progress tracking and recommendations
   async getPersonalizedRecommendations(userId: string, completedTopics: string[], currentProgress: any): Promise<any> {
     try {
-      const response = await this.makeAIRequest('/personalized-recommendations', {
-        userId,
-        completedTopics,
-        currentProgress,
-        includeNextSteps: true,
-        includeSkillGaps: true,
-        includeCareerAdvice: true
+      const response = await this.makeAIRequest(PYTHON_AI_CONFIG.ENDPOINTS.PERSONALIZATION, {
+        user_id: userId,
+        completed_topics: completedTopics,
+        current_progress: currentProgress,
+        include_next_steps: true,
+        include_skill_gaps: true,
+        include_career_advice: true
       });
 
-      return response.data;
+      return response.data || this.getFallbackRecommendations(completedTopics);
     } catch (error) {
+      console.error('Personalized recommendations error:', error);
       return this.getFallbackRecommendations(completedTopics);
     }
   }
@@ -248,15 +190,16 @@ class AdvancedAILearningService {
   // Real-time learning analytics with AI
   async analyzeLearningProgress(learningData: any): Promise<any> {
     try {
-      const response = await this.makeAIRequest('/analyze-progress', {
+      const response = await this.makeAIRequest(PYTHON_AI_CONFIG.ENDPOINTS.ASSESSMENT, {
         ...learningData,
-        includeInsights: true,
-        includeOptimizations: true,
-        includePredictions: true
+        include_insights: true,
+        include_optimizations: true,
+        include_predictions: true
       });
 
-      return response.data;
+      return response.data || { insights: [], optimizations: [], predictions: [] };
     } catch (error) {
+      console.error('Learning progress analysis error:', error);
       return { insights: [], optimizations: [], predictions: [] };
     }
   }
@@ -264,35 +207,48 @@ class AdvancedAILearningService {
   // AI-powered adaptive learning path adjustment
   async adaptLearningPath(currentPath: EnhancedTopic[], userPerformance: any, preferences: any): Promise<EnhancedTopic[]> {
     try {
-      const response = await this.makeAIRequest('/adapt-learning-path', {
-        currentPath,
-        userPerformance,
+      const response = await this.makeAIRequest(PYTHON_AI_CONFIG.ENDPOINTS.PERSONALIZATION, {
+        current_path: currentPath,
+        user_performance: userPerformance,
         preferences,
-        optimizeForWeakAreas: true,
-        maintainMotivation: true
+        optimize_for_weak_areas: true,
+        maintain_motivation: true,
+        adapt_path: true
       });
 
-      return response.data.adaptedPath || currentPath;
+      return response.data?.adapted_path || currentPath;
     } catch (error) {
+      console.error('Learning path adaptation error:', error);
       return currentPath;
     }
   }
 
   // Utility methods
   private async makeAIRequest(endpoint: string, data: any): Promise<any> {
-    const response = await fetch(`${this.aiAgentEndpoint}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-    if (!response.ok) {
-      throw new Error(`AI request failed: ${response.statusText}`);
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`AI request failed: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ AI Request Error:', error);
+      throw error;
     }
-
-    return await response.json();
   }
 
   private calculateEstimatedTime(topicTitle: string): string {

@@ -1,7 +1,9 @@
 /**
  * AI Mentor Service for Frontend
- * Handles communication between the React frontend and the AI backend
+ * Handles communication between the React frontend and the Python AI backend
  */
+
+import { PYTHON_AI_CONFIG } from '../config/config';
 
 interface AIResponse {
   success: boolean;
@@ -22,8 +24,8 @@ class AIService {
   private timeout: number;
 
   constructor() {
-    // Backend API base URL - adjust if your backend runs on different port
-    this.baseUrl = 'http://localhost:5001/api';
+    // Updated to use Python Flask backend
+    this.baseUrl = PYTHON_AI_CONFIG.BASE_URL;
     this.timeout = 30000; // 30 seconds timeout
   }
 
@@ -44,14 +46,16 @@ class AIService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-      const response = await fetch(`${this.baseUrl}/ai/ask`, {
+      const response = await fetch(`${this.baseUrl}${PYTHON_AI_CONFIG.ENDPOINTS.MOTIVATION}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: prompt.trim(),
-          topic: topic || 'General'
+          current_mood: 'focused',
+          challenges: [prompt.trim()],
+          goals: topic ? [topic] : ['learning'],
+          achievements: []
         }),
         signal: controller.signal
       });
@@ -63,10 +67,21 @@ class AIService {
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: AIResponse = await response.json();
-      
+      const responseData = await response.json();
+
+      // Transform Python backend response to AIResponse format
+      const data: AIResponse = {
+        success: responseData.success || true,
+        message: responseData.data?.motivational_message ||
+                responseData.data?.primary_message ||
+                responseData.data?.message ||
+                'I\'m here to help you with your learning journey!',
+        topic: topic,
+        timestamp: responseData.timestamp || new Date().toISOString()
+      };
+
       console.log(`✅ AI Response received: ${data.success ? 'Success' : 'Failed'}`);
-      
+
       return data;
 
     } catch (error) {
@@ -86,19 +101,25 @@ class AIService {
         if (error.message.includes('fetch')) {
           return {
             success: false,
-            message: '🌐 Unable to connect to the AI service. Please check your internet connection.',
+            message: '🔌 Unable to connect to the AI service. Please check your connection and try again.',
             timestamp: new Date().toISOString(),
-            error: 'Network error'
+            error: 'Connection error'
           };
         }
+
+        return {
+          success: false,
+          message: `❌ Error: ${error.message}`,
+          timestamp: new Date().toISOString(),
+          error: error.message
+        };
       }
 
-      // Generic error response
       return {
         success: false,
-        message: '🤖 I encountered an unexpected issue. Please try rephrasing your question!',
+        message: '❌ An unexpected error occurred. Please try again.',
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Unknown error'
       };
     }
   }
@@ -117,33 +138,26 @@ class AIService {
   }
 
   /**
-   * Get available study topics
+   * Get available study topics using Python backend
    * @returns Promise<StudyTopic[]>
    */
   async getTopics(): Promise<StudyTopic[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/ai/topics`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch topics: ${response.statusText}`);
-      }
+      // Return predefined topics since Python backend doesn't have topic list
+      const defaultTopics: StudyTopic[] = [
+        { id: 'python', name: 'Python Programming', description: 'Learn Python from basics to advanced' },
+        { id: 'javascript', name: 'JavaScript', description: 'Web development with JavaScript' },
+        { id: 'data-science', name: 'Data Science', description: 'Data analysis and machine learning' },
+        { id: 'web-development', name: 'Web Development', description: 'Full-stack web development' },
+        { id: 'algorithms', name: 'Algorithms', description: 'Problem solving and algorithms' },
+        { id: 'machine-learning', name: 'Machine Learning', description: 'AI and machine learning concepts' }
+      ];
 
-      const data = await response.json();
-      
-      if (data.success && data.topics) {
-        return data.topics.map((topic: string) => ({
-          id: topic.toLowerCase().replace(/\s+/g, '-'),
-          name: topic,
-          description: `Get help with ${topic.toLowerCase()}`
-        }));
-      }
-
-      // Fallback topics if API fails
-      return this.getDefaultTopics();
+      return defaultTopics;
 
     } catch (error) {
-      console.error('Failed to fetch topics:', error);
-      return this.getDefaultTopics();
+      console.error('❌ Error fetching topics:', error);
+      return [];
     }
   }
 
@@ -153,36 +167,64 @@ class AIService {
    */
   async isHealthy(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/ai/health`, {
+      const response = await fetch(`${this.baseUrl}${PYTHON_AI_CONFIG.ENDPOINTS.HEALTH}`, {
         method: 'GET',
-        timeout: 5000
-      } as RequestInit);
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (!response.ok) return false;
+      if (!response.ok) {
+        return false;
+      }
 
       const data = await response.json();
-      return data.status === 'healthy' && data.gemini?.initialized === true;
+      return data.status === 'healthy';
 
     } catch (error) {
-      console.error('Health check failed:', error);
+      console.error('❌ Health check failed:', error);
       return false;
     }
   }
 
   /**
-   * Get default study topics as fallback
-   * @returns StudyTopic[]
+   * Get service status information
+   * @returns Promise with status details
    */
-  private getDefaultTopics(): StudyTopic[] {
-    return [
-      { id: 'general', name: 'General', description: 'General questions and help' },
-      { id: 'programming', name: 'Programming', description: 'Coding and software development' },
-      { id: 'javascript', name: 'JavaScript', description: 'JavaScript programming language' },
-      { id: 'career-guidance', name: 'Career Guidance', description: 'Career advice and planning' },
-      { id: 'interview-prep', name: 'Interview Preparation', description: 'Job interview preparation' },
-      { id: 'skill-development', name: 'Skill Development', description: 'Learning new skills' },
-      { id: 'study-techniques', name: 'Study Techniques', description: 'Effective learning methods' }
-    ];
+  async getStatus(): Promise<{
+    healthy: boolean;
+    service: string;
+    timestamp: string;
+    agents?: any;
+  }> {
+    try {
+      const response = await fetch(`${this.baseUrl}${PYTHON_AI_CONFIG.ENDPOINTS.HEALTH}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Health check failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        healthy: data.status === 'healthy',
+        service: data.service || 'Python AI Service',
+        timestamp: data.timestamp,
+        agents: data.agents_status
+      };
+
+    } catch (error) {
+      console.error('❌ Status check failed:', error);
+      return {
+        healthy: false,
+        service: 'Unknown',
+        timestamp: new Date().toISOString()
+      };
+    }
   }
 
   /**
@@ -192,37 +234,44 @@ class AIService {
    */
   getSuggestedQuestions(topic: string): string[] {
     const suggestions: { [key: string]: string[] } = {
-      'Programming': [
-        'How do I start learning to code?',
-        'What programming language should I learn first?',
-        'How can I improve my coding skills?'
+      'Python Programming': [
+        'How do I start learning Python?',
+        'What are Python data structures?',
+        'How do I handle errors in Python?'
       ],
       'JavaScript': [
         'Explain JavaScript basics for beginners',
         'What are JavaScript closures?',
         'How does async/await work in JavaScript?'
       ],
-      'Career Guidance': [
-        'How do I choose the right career path?',
-        'What skills are in demand in tech?',
-        'How do I transition to a tech career?'
+      'Data Science': [
+        'What is data science?',
+        'How do I start with data analysis?',
+        'What tools do data scientists use?'
       ],
-      'Interview Preparation': [
-        'How should I prepare for coding interviews?',
-        'What are common interview questions?',
-        'How do I handle technical interviews?'
+      'Web Development': [
+        'How do I build a website?',
+        'What is responsive design?',
+        'How do I deploy a web application?'
       ],
-      'General': [
-        'How can I be more productive while studying?',
-        'What are effective learning techniques?',
-        'How do I stay motivated while learning?'
+      'Algorithms': [
+        'What are algorithms?',
+        'How do I approach algorithm problems?',
+        'What are common sorting algorithms?'
+      ],
+      'Machine Learning': [
+        'What is machine learning?',
+        'How do I start with ML?',
+        'What are supervised vs unsupervised learning?'
       ]
     };
 
-    return suggestions[topic] || suggestions['General'];
+    return suggestions[topic] || suggestions['Python Programming'];
   }
 }
 
-// Export singleton instance
+// Export the service instance
 export const aiMentorService = new AIService();
+
+// Export types
 export type { AIResponse, StudyTopic };

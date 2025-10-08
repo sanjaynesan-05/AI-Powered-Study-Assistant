@@ -370,14 +370,21 @@ def test_endpoint():
 if __name__ == '__main__':
     print("🚀 Starting Python AI Service (Flask Backend)...")
     print("🔧 Initializing AI agents...")
-    
+
     # Check if API keys are available
     gemini_key = os.getenv('GEMINI_API_KEY')
     openai_key = os.getenv('OPENAI_API_KEY')
-    
+
     print(f"🔑 GEMINI_API_KEY: {'✅ Found' if gemini_key else '❌ Missing'}")
     print(f"🔑 OPENAI_API_KEY: {'✅ Found' if openai_key else '❌ Missing'}")
-    
+
+    # Only require GEMINI_API_KEY for basic functionality
+    if not gemini_key:
+        print("⚠️  Warning: GEMINI_API_KEY not found. Some AI features may not work.")
+        print("   Please set GEMINI_API_KEY in your .env file or environment variables.")
+    else:
+        print("✅ AI services will use Google Gemini API")
+
     # List available agents
     agents = [
         ("Orchestrator", create_study_assistant),
