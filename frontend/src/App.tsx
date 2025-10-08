@@ -14,6 +14,7 @@ import { ContinueLearningPage } from './pages/ContinueLearningPage';
 import { RecommendationPage } from './pages/RecommendationPage';
 import { EmotionalAnalysisPage } from './pages/EmotionalAnalysisPage';
 import YouTubeTest from './components/YouTubeTest';
+import { BreakReminder } from './components/BreakReminder';
 
 
 // AppContent component to handle routing and authentication state
@@ -21,6 +22,7 @@ const AppContent: React.FC = () => {
   return (
     <Router>
       <div className="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-gray-900">
+        <BreakReminder />
         <Routes>
           {/* Always show dashboard/profile as home page */}
           <Route path="/" element={<Navigate to="/profile" replace />} />
