@@ -8,11 +8,11 @@ interface EmotionData {
   confidence: number;
   stressLevel?: number;
   category?: string;
+  mockData?: boolean;
 }
 
 export const EmotionalAnalysisPage: React.FC<EmotionalAnalysisProps> = () => {
-  // Main component for handling emotional analysis with text and camera
-  const [text, setText] = useState('');
+  // Main component for handling emotional analysis with camera
   const [analysis, setAnalysis] = useState<EmotionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -83,6 +83,7 @@ export const EmotionalAnalysisPage: React.FC<EmotionalAnalysisProps> = () => {
     
     setIsLoading(true);
     setError(null);
+    setAnalysis(null); // Clear previous results
     
     try {
       const imageFile = await captureFrame();
@@ -90,29 +91,14 @@ export const EmotionalAnalysisPage: React.FC<EmotionalAnalysisProps> = () => {
         throw new Error('Failed to capture frame');
       }
       
+      // Add a small delay to simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const result = await emotionalAnalysisService.analyzeImage(imageFile);
       setAnalysis(result);
     } catch (err) {
       console.error('Error analyzing frame:', err);
       setError('Failed to analyze image. Please try again.');
-      setAnalysis(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAnalysis = async () => {
-    if (!text.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const result = await emotionalAnalysisService.analyzeText(text);
-      setAnalysis(result);
-    } catch (err) {
-      console.error('Error analyzing text:', err);
-      setError('Failed to analyze text. Please try again.');
       setAnalysis(null);
     } finally {
       setIsLoading(false);
@@ -176,42 +162,6 @@ export const EmotionalAnalysisPage: React.FC<EmotionalAnalysisProps> = () => {
         </div>
       </div>
 
-      {/* Text Analysis Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-          Text Analysis
-        </h2>
-
-        <div className="mb-4">
-          <label 
-            htmlFor="analysis-text" 
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Enter text for emotional analysis
-          </label>
-          <textarea
-            id="analysis-text"
-            rows={6}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="Type or paste your text here..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-        </div>
-
-        <button
-          onClick={handleAnalysis}
-          disabled={!text.trim() || isLoading}
-          className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-            ${!text.trim() || isLoading 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-            }`}
-        >
-          {isLoading ? 'Analyzing...' : 'Analyze Text'}
-        </button>
-      </div>
-
       {/* Error Display */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
@@ -220,44 +170,55 @@ export const EmotionalAnalysisPage: React.FC<EmotionalAnalysisProps> = () => {
       )}
 
       {/* Analysis Results */}
-      {analysis && (
+      {(analysis || isLoading) && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
             Analysis Results
           </h2>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Primary Emotion</p>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {analysis.emotion}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Confidence</p>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {(analysis.confidence * 100).toFixed(1)}%
-                </p>
-              </div>
-              {analysis.stressLevel !== undefined && (
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Stress Level</p>
-                  <p className="text-lg font-medium text-gray-900 dark:text-white">
-                    {(analysis.stressLevel * 100).toFixed(1)}%
-                  </p>
-                </div>
-              )}
-              {analysis.category && (
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Category</p>
-                  <p className="text-lg font-medium text-gray-900 dark:text-white">
-                    {analysis.category}
-                  </p>
-                </div>
-              )}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-3 text-gray-600 dark:text-gray-400">Analyzing emotions...</span>
             </div>
-          </div>
+          ) : analysis && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Primary Emotion</p>
+                  <p className="text-lg font-medium text-gray-900 dark:text-white capitalize">
+                    {analysis.emotion}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Confidence</p>
+                  <p className="text-lg font-medium text-gray-900 dark:text-white">
+                    {(analysis.confidence * 100).toFixed(1)}%
+                  </p>
+                </div>
+                {analysis.stressLevel !== undefined && (
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Stress Level</p>
+                    <p className={`text-lg font-medium ${
+                      analysis.stressLevel < 30 ? 'text-green-600' :
+                      analysis.stressLevel < 60 ? 'text-yellow-600' :
+                      analysis.stressLevel < 80 ? 'text-orange-600' : 'text-red-600'
+                    }`}>
+                      {analysis.stressLevel.toFixed(1)}%
+                    </p>
+                  </div>
+                )}
+                {analysis.category && (
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Category</p>
+                    <p className="text-lg font-medium text-gray-900 dark:text-white">
+                      {analysis.category}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -11,7 +11,7 @@ class EmotionalAnalysisService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'http://localhost:5002/api';
+    this.baseUrl = 'http://localhost:5001/api';
   }
 
   private static instance: EmotionalAnalysisService;
