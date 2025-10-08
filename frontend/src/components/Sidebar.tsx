@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   Bot, 
   FileText, 
-  BookOpen, 
   Star,
   User,
   Brain
@@ -23,7 +22,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
     { icon: Bot, label: 'AI Mentor', path: '/ai-mentor' },
     { icon: Brain, label: 'AI Learning Hub', path: '/ai-learning-hub' },
     { icon: FileText, label: 'Resume Builder', path: '/resume-builder' },
-    { icon: BookOpen, label: 'Learning Path', path: '/learning-path' },
     { icon: Star, label: 'Recommendation', path: '/recommendation' },
   ];
 

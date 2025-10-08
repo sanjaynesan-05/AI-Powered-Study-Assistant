@@ -176,12 +176,9 @@ class AIService {
   private getDefaultTopics(): StudyTopic[] {
     return [
       { id: 'general', name: 'General', description: 'General questions and help' },
-      { id: 'programming', name: 'Programming', description: 'Coding and software development' },
-      { id: 'javascript', name: 'JavaScript', description: 'JavaScript programming language' },
       { id: 'career-guidance', name: 'Career Guidance', description: 'Career advice and planning' },
       { id: 'interview-prep', name: 'Interview Preparation', description: 'Job interview preparation' },
-      { id: 'skill-development', name: 'Skill Development', description: 'Learning new skills' },
-      { id: 'study-techniques', name: 'Study Techniques', description: 'Effective learning methods' }
+      { id: 'skill-development', name: 'Skill Development', description: 'Learning new skills' }
     ];
   }
 
@@ -192,30 +189,20 @@ class AIService {
    */
   getSuggestedQuestions(topic: string): string[] {
     const suggestions: { [key: string]: string[] } = {
-      'Programming': [
-        'How do I start learning to code?',
-        'What programming language should I learn first?',
-        'How can I improve my coding skills?'
-      ],
-      'JavaScript': [
-        'Explain JavaScript basics for beginners',
-        'What are JavaScript closures?',
-        'How does async/await work in JavaScript?'
-      ],
       'Career Guidance': [
         'How do I choose the right career path?',
         'What skills are in demand in tech?',
         'How do I transition to a tech career?'
       ],
       'Interview Preparation': [
-        'How should I prepare for coding interviews?',
+        'How should I prepare for interviews?',
         'What are common interview questions?',
-        'How do I handle technical interviews?'
+        'How do I present myself professionally?'
       ],
       'General': [
-        'How can I be more productive while studying?',
-        'What are effective learning techniques?',
-        'How do I stay motivated while learning?'
+        'How can I improve my professional skills?',
+        'What are effective ways to achieve my goals?',
+        'How do I stay motivated?'
       ]
     };
 

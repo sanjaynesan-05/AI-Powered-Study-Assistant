@@ -1,6 +1,6 @@
 import React from 'react';
 
-import kmentorLogo from '../assets/kmentor-logo.jpg';
+import zenLearnLogo from '../assets/ZenLearn-Logo.png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -22,13 +22,13 @@ export const Logo: React.FC<LogoProps> = ({ size = 'md' }) => {
   return (
     <div className="flex items-center space-x-2">
       <img
-        src={kmentorLogo}
-        alt="KMENTOR Logo"
+        src={zenLearnLogo}
+        alt="ZenLearn Logo"
         className={`${imgSizes[size]} object-cover`}
         style={{ display: 'block' }}
       />
       <span className={`${sizeClasses[size]} font-bold text-blue-600`}>
-        KMENTOR
+        ZenLearn
       </span>
     </div>
   );
