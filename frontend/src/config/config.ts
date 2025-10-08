@@ -3,8 +3,8 @@ export const CONFIG = {
   // YouTube API Configuration - Read from Vite environment variables
   YOUTUBE_API_KEY: import.meta.env.VITE_YOUTUBE_API_KEY || '',
   
-  // Backend API Configuration
-  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001',
+  // Backend API Configuration - UPDATED TO PYTHON FLASK API
+  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
   
   // AI Agent Configuration
   AI_AGENTS_ENABLED: true,
@@ -74,7 +74,23 @@ export const isFeatureEnabled = (feature: keyof typeof CONFIG.FEATURES): boolean
   return CONFIG.FEATURES[feature];
 };
 
+// Python AI Service Configuration
+export const PYTHON_AI_CONFIG = {
+  BASE_URL: 'http://localhost:8000',
+  ENDPOINTS: {
+    STUDY_PLAN: '/study-plan',
+    LEARNING_RESOURCES: '/learning-resources',
+    ASSESSMENT: '/assessment',
+    WELLNESS: '/wellness-assessment',
+    SCHEDULE: '/schedule-optimization',
+    MOTIVATION: '/motivation-boost',
+    PERSONALIZATION: '/personalization',
+    HEALTH: '/health'
+  }
+};
+
 export const getBackendURL = () => CONFIG.BACKEND_URL;
+export const getPythonAPIURL = () => PYTHON_AI_CONFIG.BASE_URL;
 
 export const getRoadmapURL = (category: string): string | null => {
   return CONFIG.ROADMAP_URLS[category as keyof typeof CONFIG.ROADMAP_URLS] || null;

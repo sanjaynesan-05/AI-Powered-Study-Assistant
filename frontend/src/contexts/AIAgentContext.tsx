@@ -9,6 +9,16 @@ import {
   MotivationalSupport,
   LearningResources
 } from '../services/aiAgentService';
+import { 
+  pythonAIService,
+  PythonAIResponse,
+  StudyPlanRequest,
+  LearningResourcesRequest,
+  AssessmentRequest,
+  WellnessRequest,
+  ScheduleOptimizationRequest,
+  MotivationRequest
+} from '../services/pythonAIService';
 
 interface AIAgentContextType {
   // State
@@ -22,6 +32,16 @@ interface AIAgentContextType {
   learningResources: LearningResources | null;
   orchestratorStatus: any | null;
   error: string | null;
+  
+  // Python AI Agent Functions (NEW - Direct access to your Python agents)
+  pythonGenerateStudyPlan: (request: StudyPlanRequest) => Promise<PythonAIResponse>;
+  pythonGetLearningResources: (request: LearningResourcesRequest) => Promise<PythonAIResponse>;
+  pythonGenerateAssessment: (request: AssessmentRequest) => Promise<PythonAIResponse>;
+  pythonGetWellnessAssessment: (request: WellnessRequest) => Promise<PythonAIResponse>;
+  pythonOptimizeSchedule: (request: ScheduleOptimizationRequest) => Promise<PythonAIResponse>;
+  pythonGetMotivationBoost: (request: MotivationRequest) => Promise<PythonAIResponse>;
+  pythonGetPersonalization: (request: any) => Promise<PythonAIResponse>;
+  pythonHealthCheck: () => Promise<PythonAIResponse>;
   
   // AI Journey Generation (Enhanced)
   generateCompleteJourney: (targetSkill: string, userProfile?: any, preferences?: any) => Promise<void>;
@@ -75,6 +95,115 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
     setMotivationalSupport(null);
     setLearningResources(null);
     setError(null);
+  };
+
+  // Python AI Agent Functions (Direct access to your Python agents)
+  const pythonGenerateStudyPlan = async (request: StudyPlanRequest): Promise<PythonAIResponse> => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await pythonAIService.generateStudyPlan(request);
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate study plan');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pythonGetLearningResources = async (request: LearningResourcesRequest): Promise<PythonAIResponse> => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await pythonAIService.getLearningResources(request);
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to get learning resources');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pythonGenerateAssessment = async (request: AssessmentRequest): Promise<PythonAIResponse> => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await pythonAIService.generateAssessment(request);
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate assessment');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pythonGetWellnessAssessment = async (request: WellnessRequest): Promise<PythonAIResponse> => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await pythonAIService.getWellnessAssessment(request);
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to get wellness assessment');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pythonOptimizeSchedule = async (request: ScheduleOptimizationRequest): Promise<PythonAIResponse> => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await pythonAIService.optimizeSchedule(request);
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to optimize schedule');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pythonGetMotivationBoost = async (request: MotivationRequest): Promise<PythonAIResponse> => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await pythonAIService.getMotivationBoost(request);
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to get motivation boost');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pythonGetPersonalization = async (request: any): Promise<PythonAIResponse> => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await pythonAIService.getPersonalization(request);
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to get personalization');
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pythonHealthCheck = async (): Promise<PythonAIResponse> => {
+    try {
+      const response = await pythonAIService.healthCheck();
+      return response;
+    } catch (err: any) {
+      setError(err.message || 'Failed to check Python AI service health');
+      throw err;
+    }
   };
 
   const makeAuthenticatedRequest = async (endpoint: string, options: RequestInit = {}) => {
@@ -456,6 +585,16 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
     learningResources,
     orchestratorStatus,
     error,
+    
+    // Python AI Agent Functions (NEW - Direct access to your Python agents)
+    pythonGenerateStudyPlan,
+    pythonGetLearningResources,
+    pythonGenerateAssessment,
+    pythonGetWellnessAssessment,
+    pythonOptimizeSchedule,
+    pythonGetMotivationBoost,
+    pythonGetPersonalization,
+    pythonHealthCheck,
     
     // Enhanced Functions
     generateCompleteJourney,
