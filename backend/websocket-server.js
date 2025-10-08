@@ -3,6 +3,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const EventEmitter = require('events');
 
 class WebSocketServer {
   constructor(port = 5002) {

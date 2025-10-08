@@ -12,8 +12,8 @@ import { ResumeBuilderPage } from './pages/ResumeBuilderPage';
 import { LearningPathPage } from './pages/LearningPathPage';
 import { ContinueLearningPage } from './pages/ContinueLearningPage';
 import { RecommendationPage } from './pages/RecommendationPage';
+import { EmotionalAnalysisPage } from './pages/EmotionalAnalysisPage';
 import YouTubeTest from './components/YouTubeTest';
-
 
 
 // AppContent component to handle routing and authentication state
@@ -31,6 +31,7 @@ const AppContent: React.FC = () => {
             <Route path="/resume-builder" element={<ResumeBuilderPage />} />
             <Route path="/learning-path" element={<LearningPathPage />} />
             <Route path="/continue-learning" element={<ContinueLearningPage />} />
+            <Route path="/emotional-analysis" element={<EmotionalAnalysisPage />} />
             <Route path="/recommendation" element={<RecommendationPage />} />
             <Route path="/youtube-test" element={<YouTubeTest />} />
           </Route>

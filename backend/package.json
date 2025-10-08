@@ -2,7 +2,7 @@
   "name": "ai-mentor-backend",
   "version": "1.0.0",
   "description": "Backend for AI Mentor application with PostgreSQL",
-  "main": "src/index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
@@ -28,13 +28,17 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "express": "^4.18.2",
+    "events": "^3.3.0",
+    "express": "^4.21.2",
+    "express-fileupload": "^1.5.2",
+    "fileupload": "^1.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.0.3",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
-    "validator": "^13.15.15"
+    "validator": "^13.15.15",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

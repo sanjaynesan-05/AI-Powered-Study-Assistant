@@ -23,5 +23,8 @@
   "homepage": "https://github.com/sanjaynesan-05/AI-Powered-Study-Assistant#readme",
   "dependencies": {
     "axios": "^1.12.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
