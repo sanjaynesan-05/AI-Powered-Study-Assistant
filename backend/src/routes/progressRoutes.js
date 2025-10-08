@@ -6,7 +6,7 @@ const {
   VideoHistoryController,
   LearningSessionController
 } = require('../controllers/progressController');
-const authMiddleware = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddleware');
 const {
   UserProgress,
   AIInteraction,
@@ -18,7 +18,7 @@ const {
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(protect);
 
 // User Progress Routes
 router.get('/progress/:userId', ProgressController.getAllUserProgress);

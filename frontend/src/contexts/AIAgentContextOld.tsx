@@ -77,26 +77,6 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
     setError(null);
   };
 
-  const makeAuthenticatedRequest = async (endpoint: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('token');
-    const baseUrl = 'http://localhost:5001';
-    
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    return response.json();
-  };
-
   /**
    * Generate complete AI-orchestrated learning journey
    */
@@ -105,13 +85,13 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
       setIsGenerating(true);
       setError(null);
       
-      console.log(`🚀 Starting orchestrated journey generation for: ${targetSkill}`);
+      console.log(`🚀 Starting complete journey generation for: ${targetSkill}`);
       
       const journey = await aiAgentService.generateCompleteJourney(targetSkill, userProfile, preferences);
       
       setCurrentJourney(journey);
       
-      // Update individual state components from orchestrated response
+      // Update individual state components
       if (journey.learningPath) {
         setLearningPaths(prev => {
           const filtered = prev.filter(path => path.id !== journey.learningPath.id);
@@ -120,12 +100,20 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
       }
       
       if (journey.assessment && journey.assessment.available) {
-        const newAssessment: Assessment = {
-          ...journey.assessment,
-          topic: journey.assessment.topic || `${targetSkill} Assessment`,
-          instructions: journey.assessment.instructions || `Adaptive assessment for ${targetSkill}`,
-        };
-        setAssessments(prev => [...prev, newAssessment]);
+        setAssessments(prev => {
+          const newAssessment: Assessment = {
+            ...journey.assessment,
+            id: journey.assessment.quiz_id || `assessment_${Date.now()}`,
+            title: `${targetSkill} Assessment`,
+            description: `Adaptive assessment for ${targetSkill}`,
+            skillArea: targetSkill,
+            questions: journey.assessment.questions || [],
+            passingScore: 70,
+            timeLimit: 30,
+            difficultyLevel: journey.assessment.difficulty || 'intermediate'
+          };
+          return [...prev, newAssessment];
+        });
       }
       
       if (journey.recommendations) {
@@ -140,7 +128,7 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
         setMotivationalSupport(journey.motivationalSupport);
       }
       
-      console.log(`✅ Complete orchestrated journey generated for: ${targetSkill}`);
+      console.log(`✅ Complete journey generated successfully for: ${targetSkill}`);
       
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to generate complete learning journey';
@@ -182,9 +170,15 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
       const assessmentData = await aiAgentService.generateAdaptiveAssessment(skillArea, difficulty, questionCount);
       
       const newAssessment: Assessment = {
-        ...assessmentData,
-        topic: assessmentData.topic || `${skillArea} Assessment`,
-        instructions: assessmentData.instructions || `Adaptive assessment for ${skillArea}`,
+        id: assessmentData.assessment_id || `assessment_${Date.now()}`,
+        title: `${skillArea} Assessment`,
+        description: `Adaptive assessment for ${skillArea}`,
+        skillArea,
+        questions: assessmentData.questions || [],
+        passingScore: 70,
+        timeLimit: 30,
+        difficultyLevel: assessmentData.difficulty || difficulty,
+        ...assessmentData
       };
       
       setAssessments(prev => [...prev, newAssessment]);
@@ -235,9 +229,87 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
     }
   };
 
+  // Legacy functions for backward compatibility
+  const makeAuthenticatedRequest = async (endpoint: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('token');
+    const baseUrl = 'http://localhost:5001';
+    
+    const response = await fetch(`${baseUrl}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return response.json();
+  };
+
   /**
-   * Generate a personalized learning path using AI (Legacy)
+   * Generate complete AI-orchestrated learning journey (Enhanced Version)
    */
+  const generateCompleteJourney = async (targetSkill: string, userProfile: any = {}, preferences: any = {}) => {
+    try {
+      setIsGenerating(true);
+      setError(null);
+      
+      console.log(`🚀 Starting orchestrated journey generation for: ${targetSkill}`);
+      
+      const journey = await aiAgentService.generateCompleteJourney(targetSkill, userProfile, preferences);
+      
+      setCurrentJourney(journey);
+      
+      // Update individual state components from orchestrated response
+      if (journey.learningPath) {
+        setLearningPaths(prev => {
+          const filtered = prev.filter(path => path.id !== journey.learningPath.id);
+          return [...filtered, journey.learningPath];
+        });
+      }
+      
+      if (journey.assessment && journey.assessment.available) {
+        const newAssessment: Assessment = {
+          id: journey.assessment.quiz_id || `assessment_${Date.now()}`,
+          title: `${targetSkill} Assessment`,
+          description: `Adaptive assessment for ${targetSkill}`,
+          skillArea: targetSkill,
+          questions: journey.assessment.questions || [],
+          passingScore: 70,
+          timeLimit: 30,
+          difficultyLevel: journey.assessment.difficulty || 'intermediate'
+        };
+        setAssessments(prev => [...prev, newAssessment]);
+      }
+      
+      if (journey.recommendations) {
+        setRecommendations(journey.recommendations);
+      }
+      
+      if (journey.wellnessInsights) {
+        setWellnessInsights(journey.wellnessInsights);
+      }
+      
+      if (journey.motivationalSupport) {
+        setMotivationalSupport(journey.motivationalSupport);
+      }
+      
+      console.log(`✅ Complete orchestrated journey generated for: ${targetSkill}`);
+      
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to generate complete learning journey';
+      setError(errorMessage);
+      console.error('Complete Journey Generation Error:', err);
+      throw err;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const generateLearningPath = async (
     targetSkill: string, 
     difficulty: string = 'beginner', 
@@ -247,31 +319,24 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
       setIsGenerating(true);
       setError(null);
       
-      const payload = {
-        target_skill: targetSkill,
-        difficulty_level: difficulty,
-        user_preferences: preferences
-      };
-      
-      const response = await makeAuthenticatedRequest('/api/ai-agents/generate-learning-path', {
+      const response = await makeAuthenticatedRequest('/api/ai-agents/learning-path', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          targetSkill,
+          difficulty,
+          preferences
+        })
       });
-      
-      if (response.success && response.learningPath) {
-        const newLearningPath: LearningPath = response.learningPath;
-        
-        setLearningPaths(prev => {
-          const filtered = prev.filter(path => path.id !== newLearningPath.id);
-          return [...filtered, newLearningPath];
-        });
-        
-        return newLearningPath;
+
+      if (response.success) {
+        const newPath = response.data;
+        setLearningPaths(prev => [...prev, newPath]);
+        return newPath;
+      } else {
+        throw new Error(response.message || 'Failed to generate learning path');
       }
-      
-      return null;
     } catch (err: any) {
-      setError(err.message || 'Failed to generate learning path');
+      setError(err.message || 'An error occurred while generating the learning path');
       console.error('Learning Path Generation Error:', err);
       return null;
     } finally {
@@ -279,38 +344,33 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
     }
   };
 
-  /**
-   * Generate an assessment using AI (Legacy)
-   */
   const generateAssessment = async (
-    skillArea: string,
-    difficulty: string = 'intermediate',
-    questionCount: number = 10
+    skillArea: string, 
+    difficulty: string = 'intermediate', 
+    questionCount: number = 20
   ): Promise<Assessment | null> => {
     try {
       setIsGenerating(true);
       setError(null);
       
-      const payload = {
-        skill_area: skillArea,
-        difficulty_level: difficulty,
-        question_count: questionCount
-      };
-      
-      const response = await makeAuthenticatedRequest('/api/ai-agents/generate-assessment', {
+      const response = await makeAuthenticatedRequest('/api/ai-agents/assessment', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          skillArea,
+          difficulty,
+          questionCount
+        })
       });
-      
-      if (response.success && response.assessment) {
-        const newAssessment: Assessment = response.assessment;
+
+      if (response.success) {
+        const newAssessment = response.data;
         setAssessments(prev => [...prev, newAssessment]);
         return newAssessment;
+      } else {
+        throw new Error(response.message || 'Failed to generate assessment');
       }
-      
-      return null;
     } catch (err: any) {
-      setError(err.message || 'Failed to generate assessment');
+      setError(err.message || 'An error occurred while generating the assessment');
       console.error('Assessment Generation Error:', err);
       return null;
     } finally {
@@ -318,129 +378,128 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
     }
   };
 
-  /**
-   * Analyze assessment results using AI (Legacy)
-   */
   const analyzeAssessmentResults = async (
-    userAnswers: any[],
-    assessment: Assessment,
-    timeSpent: number = 0
-  ): Promise<any> => {
+    userAnswers: any[], 
+    assessment: Assessment, 
+    timeSpent: number = 30
+  ) => {
     try {
+      setIsGenerating(true);
       setError(null);
       
-      // Calculate basic score
+      // Mock analysis for demo
       const correctAnswers = userAnswers.filter((answer, index) => 
-        answer === assessment.questions?.[index]?.correct_answer
+        answer === assessment.questions[index]?.correctAnswer
       ).length;
       
-      const totalQuestions = assessment.questions?.length || 1;
-      const score = Math.round((correctAnswers / totalQuestions) * 100);
-      const passed = score >= 70;
+      const score = Math.round((correctAnswers / assessment.questions.length) * 100);
+      const passed = score >= (assessment.passingScore || 70);
       
-      const analysis = {
+      const mockResults = {
         score,
         passed,
-        correctAnswers,
-        totalQuestions,
-        timeSpent,
-        feedback: `You scored ${score}% on the assessment. ${
-          passed ? 'Congratulations! You passed.' : 'Keep practicing to improve your skills.'
+        performance: score >= 90 ? 'Excellent' : score >= 70 ? 'Good' : 'Needs Improvement',
+        feedback: `You scored ${score}% on the ${assessment.skillArea} assessment. ${
+          passed 
+            ? 'Great job! You demonstrate solid understanding of the concepts.' 
+            : 'Consider reviewing the fundamentals and practicing more.'
         }`,
         recommendations: passed 
-          ? ['Advance to intermediate topics', 'Practice real-world projects', 'Consider teaching others']
-          : ['Review fundamentals', 'Practice more exercises', 'Seek additional resources']
+          ? [`Advance to intermediate ${assessment.skillArea} topics`, 'Practice real-world projects', 'Consider teaching others']
+          : [`Review ${assessment.skillArea} fundamentals`, 'Take additional practice tests', 'Focus on weak areas identified'],
+        timeSpent,
+        totalQuestions: assessment.questions.length,
+        correctAnswers
       };
-      
-      // Send to backend for AI analysis
-      const payload = {
-        user_answers: userAnswers,
-        assessment_quiz_id: assessment.quiz_id || 'unknown',
-        time_spent: timeSpent,
-        basic_analysis: analysis
-      };
-      
-      const response = await makeAuthenticatedRequest('/api/ai-agents/analyze-assessment', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-      
-      return response.analysis || analysis;
+
+      return mockResults;
     } catch (err: any) {
+      setError(err.message || 'An error occurred while analyzing assessment results');
       console.error('Assessment Analysis Error:', err);
-      return {
-        score: 0,
-        passed: false,
-        feedback: 'Unable to analyze assessment results',
-        recommendations: ['Try again later']
-      };
+      return null;
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  /**
-   * Get personalized recommendations (Legacy)
-   */
-  const getPersonalizedRecommendations = async (): Promise<void> => {
+  const getPersonalizedRecommendations = async () => {
     try {
+      setIsGenerating(true);
       setError(null);
       
       const response = await makeAuthenticatedRequest('/api/ai-agents/recommendations', {
-        method: 'GET',
+        method: 'GET'
       });
-      
-      if (response.success && response.recommendations) {
-        setRecommendations(response.recommendations);
+
+      if (response.success) {
+        setRecommendations(response.data);
+      } else {
+        throw new Error(response.message || 'Failed to get recommendations');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to get recommendations');
+      setError(err.message || 'An error occurred while fetching recommendations');
       console.error('Recommendations Error:', err);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  /**
-   * Get skill gap analysis (Legacy)
-   */
-  const getSkillGapAnalysis = async (targetRole: string): Promise<any> => {
+  const getSkillGapAnalysis = async (targetRole: string) => {
     try {
+      setIsGenerating(true);
       setError(null);
       
-      const payload = { target_role: targetRole };
-      
-      const response = await makeAuthenticatedRequest('/api/ai-agents/skill-gap-analysis', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-      
-      return response.analysis || null;
+      // Mock skill gap analysis for demo
+      const mockGapAnalysis = {
+        targetRole,
+        currentSkills: ['JavaScript', 'Python', 'React'],
+        requiredSkills: ['JavaScript', 'Python', 'React', 'Node.js', 'TypeScript', 'Docker', 'AWS'],
+        missingSkills: ['Node.js', 'TypeScript', 'Docker', 'AWS'],
+        skillMatch: 43, // percentage
+        recommendations: [
+          'Start with TypeScript as it builds on your JavaScript knowledge',
+          'Learn Node.js to become a full-stack developer',
+          'Get familiar with Docker for containerization',
+          'Begin with AWS fundamentals for cloud deployment'
+        ],
+        estimatedTimeToReady: '4-6 months',
+        priorityOrder: ['TypeScript', 'Node.js', 'Docker', 'AWS']
+      };
+
+      return mockGapAnalysis;
     } catch (err: any) {
-      setError(err.message || 'Failed to get skill gap analysis');
+      setError(err.message || 'An error occurred during skill gap analysis');
       console.error('Skill Gap Analysis Error:', err);
       return null;
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  /**
-   * Analyze learning progress (Legacy)
-   */
-  const analyzeProgress = async (pathId: string, progressData: any): Promise<any> => {
+  const analyzeProgress = async (pathId: string, progressData: any) => {
     try {
+      setIsGenerating(true);
       setError(null);
-      
-      const payload = {
-        path_id: pathId,
-        progress_data: progressData
-      };
       
       const response = await makeAuthenticatedRequest('/api/ai-agents/analyze-progress', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          pathId,
+          progressData
+        })
       });
-      
-      return response.analysis || null;
+
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to analyze progress');
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to analyze progress');
+      setError(err.message || 'An error occurred while analyzing progress');
       console.error('Progress Analysis Error:', err);
       return null;
+    } finally {
+      setIsGenerating(false);
     }
   };
 

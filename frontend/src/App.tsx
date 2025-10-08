@@ -13,6 +13,7 @@ import { LearningPathPage } from './pages/LearningPathPage';
 import { ContinueLearningPage } from './pages/ContinueLearningPage';
 import { RecommendationPage } from './pages/RecommendationPage';
 import YouTubeTest from './components/YouTubeTest';
+import AIAgentDemo from './components/AIAgentDemo';
 
 
 
@@ -33,6 +34,7 @@ const AppContent: React.FC = () => {
             <Route path="/continue-learning" element={<ContinueLearningPage />} />
             <Route path="/recommendation" element={<RecommendationPage />} />
             <Route path="/youtube-test" element={<YouTubeTest />} />
+            <Route path="/ai-agents" element={<AIAgentDemo />} />
           </Route>
           {/* Catch-all: redirect unknown routes to dashboard/profile */}
           <Route path="*" element={<Navigate to="/profile" replace />} />

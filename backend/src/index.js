@@ -28,6 +28,9 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Import database connection
 const connectDB = require('./config/db');
 
+// Import hybrid agent orchestrator
+const hybridOrchestrator = require('./services/hybridAgentOrchestrator');
+
 // Import routes
 const aiAgentRoutes = require('./routes/aiAgentRoutes');
 const progressRoutes = require('./routes/progressRoutes');
@@ -246,7 +249,30 @@ app.post('/api/smart-recommendations', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
+
+// Initialize hybrid orchestrator on startup
+hybridOrchestrator.initialize()
+  .then(() => {
+    console.log('✅ Hybrid Agent Orchestrator initialized');
+  })
+  .catch((error) => {
+    console.warn('⚠️  Hybrid orchestrator initialization failed, using JavaScript fallbacks only:', error.message);
+  });
+
 server.listen(PORT, () => {
   console.log(`AI-Powered Study Assistant backend running on port ${PORT}`);
   console.log(`WebSocket server enabled`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  hybridOrchestrator.shutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  hybridOrchestrator.shutdown();
+  process.exit(0);
 });

@@ -1,12 +1,55 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+/**
+ * Assessment Agent - Generates adaptive quizzes and evaluations
+ * Enhanced implementation with adaptive learning capabilities
+ */
 
-class AssessmentGeneratorAgent {
-  constructor(apiKey) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-  }
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-  async generateEligibilityTest(skillArea, difficulty = 'intermediate', questionCount = 20) {
+class AssessmentAgent {
+    constructor(geminiApiKey) {
+        this.genAI = new GoogleGenerativeAI(geminiApiKey);
+        this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        this.questionTypes = ['multiple-choice', 'true-false', 'short-answer', 'coding'];
+    }
+
+    /**
+     * Generate adaptive quiz based on topic and learning resources
+     */
+    async generateQuiz(topic, learningResources = [], numQuestions = 5, difficulty = 'intermediate') {
+        try {
+            console.log(`📝 Assessment Agent: Generating ${numQuestions} questions for "${topic}"`);
+
+            const prompt = this.buildQuizPrompt(topic, learningResources, numQuestions, difficulty);
+            const result = await this.model.generateContent(prompt);
+            const response = result.response.text();
+
+            // Parse and validate the quiz
+            const quiz = this.parseQuizResponse(response);
+            
+            return {
+                quiz_id: this.generateQuizId(topic),
+                topic,
+                difficulty,
+                questions: quiz.questions || [],
+                total_questions: quiz.questions?.length || 0,
+                estimated_time: `${Math.ceil(quiz.questions?.length * 1.5)} minutes`,
+                instructions: quiz.instructions || this.getDefaultInstructions(),
+                scoring: {
+                    total_points: quiz.questions?.length * 10 || 0,
+                    passing_score: Math.ceil((quiz.questions?.length || 0) * 7) // 70% to pass
+                }
+            };
+
+        } catch (error) {
+            console.error('Assessment Agent Error:', error);
+            return this.getFallbackQuiz(topic, numQuestions);
+        }
+    }
+
+    /**
+     * Original eligibility test generation (keeping for backward compatibility)
+     */
+    async generateEligibilityTest(skillArea, difficulty = 'intermediate', questionCount = 20) {
     const prompt = `
     You are an AI Assessment Generator. Create a comprehensive eligibility test.
     
@@ -297,4 +340,4 @@ class AssessmentGeneratorAgent {
   }
 }
 
-module.exports = { AssessmentGeneratorAgent };
+module.exports = { AssessmentAgent };
