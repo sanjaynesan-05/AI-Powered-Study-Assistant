@@ -1,6 +1,6 @@
-# Hybrid Python-JavaScript AI Agents Integration
+# Python-Only AI Agents Integration
 
-This integration combines the power of Python's advanced AI libraries (LangGraph, LangChain) with the Node.js backend, providing sophisticated AI agent orchestration while maintaining JavaScript fallbacks.
+This integration uses advanced Python AI libraries (LangGraph, LangChain) with the Node.js backend, providing sophisticated AI agent orchestration without JavaScript fallbacks for consistent, enterprise-grade performance.
 
 ## Architecture Overview
 
@@ -15,12 +15,12 @@ This integration combines the power of Python's advanced AI libraries (LangGraph
 │              Node.js Backend (Express.js)                    │
 │                      Port 5001                               │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │       Hybrid Agent Orchestrator                     │    │
-│  │  ┌──────────────┐         ┌──────────────┐        │    │
-│  │  │   Python     │         │  JavaScript  │        │    │
-│  │  │   Agents     │◄────────┤   Fallback   │        │    │
-│  │  │  (Primary)   │  Falls  │   Agents     │        │    │
-│  │  └──────┬───────┘  back   └──────────────┘        │    │
+│  │       Python-Only Agent Orchestrator               │    │
+│  │  ┌──────────────┐                                   │    │
+│  │  │   Python     │                                   │    │
+│  │  │   Agents     │                                   │    │
+│  │  │  (Required)  │                                   │    │
+│  │  └──────┬───────┘                                   │    │
 │  └─────────┼─────────────────────────────────────────┘    │
 └────────────┼──────────────────────────────────────────────┘
              │ HTTP

@@ -38,10 +38,9 @@ graph TB
         B --> |WebSocket| WS[Real-time Features]
     end
     
-    subgraph "AI Layer - Hybrid Architecture"
-        B --> HO[Hybrid Orchestrator]
-        HO --> |Primary| PA[Python AI Agents]
-        HO --> |Fallback| JA[JavaScript Agents]
+    subgraph "AI Layer - Python-Only Architecture"
+        B --> PO[Python-Only Orchestrator]
+        PO --> PA[Python AI Agents]
         
         subgraph "Python Agents (Port 8001)"
             PA --> PAR[Python Agent Runner]
@@ -53,15 +52,6 @@ graph TB
             LG --> AG4[Schedule Agent]
             LG --> AG5[Motivation Agent]
             LG --> AG6[Personalization Agent]
-        end
-        
-        subgraph "JavaScript Fallback Agents"
-            JA --> JAG1[Learning Resource Agent]
-            JA --> JAG2[Assessment Generator]
-            JA --> JAG3[Wellness Monitor]
-            JA --> JAG4[Schedule Helper]
-            JA --> JAG5[Motivation Bot]
-            JA --> JAG6[Personalization Engine]
         end
     end
     
@@ -96,7 +86,6 @@ graph TB
     style F fill:#61dafb,stroke:#333,color:#000
     style B fill:#68d391,stroke:#333,color:#000
     style PA fill:#ffd43b,stroke:#333,color:#000
-    style JA fill:#f56565,stroke:#333,color:#000
     style PG fill:#336791,stroke:#333,color:#fff
     style GEM fill:#4285f4,stroke:#333,color:#fff
 ```
@@ -136,44 +125,40 @@ sequenceDiagram
     participant U as User
     participant F as Frontend
     participant B as Backend
-    participant HO as Hybrid Orchestrator
+    participant PO as Python-Only Orchestrator
     participant PA as Python Agents
-    participant JA as JS Agents
     participant DB as Database
     participant AI as External AI
     
     U->>F: User Action (Learn React)
     F->>B: POST /api/ai-agents/hybrid/study-plan
-    B->>HO: generateStudyPlan(userData)
+    B->>PO: generateStudyPlan(userData)
     
     alt Python Agents Available
-        HO->>PA: Forward request to Python
+        PO->>PA: Forward request to Python
         PA->>AI: Process with LangGraph + Gemini
         AI-->>PA: AI Response
-        PA-->>HO: Structured Learning Plan
+        PA-->>PO: Structured Learning Plan
+        PO-->>B: Python Response
     else Python Agents Unavailable
-        HO->>JA: Fallback to JavaScript
-        JA->>AI: Simple Gemini Request
-        AI-->>JA: Basic Response
-        JA-->>HO: Basic Learning Plan
+        PO-->>B: Error Response (Python Required)
     end
     
-    HO-->>B: Combined Response
-    B->>DB: Store user progress
+    B->>DB: Store user progress (if successful)
     DB-->>B: Confirmation
-    B-->>F: Return study plan
-    F-->>U: Display personalized plan
+    B-->>F: Return response or error
+    F-->>U: Display result or error message
 ```
 
-### 2. AI Agent Decision Flow
+### 2. Python-Only Agent Decision Flow
 
 ```mermaid
 flowchart TD
-    A[User Request] --> B{Hybrid Orchestrator}
+    A[User Request] --> B{Python-Only Orchestrator}
     B --> C{Python Agents Available?}
     
     C -->|Yes| D[Python FastAPI Server]
-    C -->|No| E[JavaScript Fallback]
+    C -->|No| E[Error: Python Agents Required]
     
     D --> F[LangGraph Orchestrator]
     F --> G[Multi-Agent Coordination]
@@ -191,18 +176,16 @@ flowchart TD
     L --> N
     M --> N
     
-    E --> O[Basic AI Processing]
+    E --> O[Error Response]
     
     N --> P[Sophisticated Response]
-    O --> Q[Basic Response]
     
-    P --> R[Return to User]
-    Q --> R
+    P --> Q[Return to User]
+    O --> Q
     
     style D fill:#ffd43b
-    style E fill:#f56565
+    style E fill:#ef4444
     style N fill:#4ade80
-    style O fill:#fbbf24
 ```
 
 ### 3. Database Schema Relationships
@@ -387,26 +370,26 @@ src/index.js (Entry Point)
 | **YouTube Integration** | ✅ Complete | YouTube API | Medium |
 | **Responsive Design** | ✅ Complete | Tailwind CSS | Medium |
 | **Real-time Updates** | ✅ Complete | WebSocket | Medium |
-| **Hybrid AI System** | ✅ Complete | Python + JavaScript | Very High |
+| **Python-Only AI System** | ✅ Complete | Python + LangGraph | Very High |
 
 ### AI Capabilities Breakdown
 
-#### Python AI Agents (Advanced)
+#### Python AI Agents (Required)
 - **LangGraph Orchestration**: Multi-agent workflow coordination
 - **Complex Reasoning**: Advanced decision-making capabilities
 - **Emotional Intelligence**: Hume AI integration for mood analysis
 - **State Management**: Persistent conversation context
 - **Multi-Modal Processing**: Text, voice, and data analysis
 
-#### JavaScript AI Agents (Fallback)
-- **Basic AI Functions**: Simple Q&A and content generation
-- **Fast Response**: Lower latency for simple tasks
-- **Always Available**: No external dependencies
-- **Resource Efficient**: Lower memory and CPU usage
+#### Architecture Benefits
+- **Sophisticated AI Processing**: Advanced multi-agent coordination
+- **Consistent Performance**: No fallback complexity
+- **Specialized Agents**: Each agent optimized for specific tasks
+- **Enterprise-Grade**: Production-ready Python AI infrastructure
 
 ---
 
-## 📈 Performance Analysis
+### Performance Analysis
 
 ### Current Performance Metrics
 
@@ -417,6 +400,8 @@ src/index.js (Entry Point)
 | **Memory Usage** | ~50MB | ~100MB | ~200MB | ~300MB |
 | **Bundle Size** | ~2MB | N/A | N/A | N/A |
 | **Concurrent Users** | 1000+ | 500+ | 1000+ | 50+ |
+
+**Note**: Performance requires Python agents to be properly installed and running.
 
 ### Optimization Opportunities
 
