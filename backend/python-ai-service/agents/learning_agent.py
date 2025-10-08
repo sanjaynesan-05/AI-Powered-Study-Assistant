@@ -44,104 +44,157 @@ class SmartLearningResourceAgent:
             self.books_service = None
 
     async def smart_resource_discovery(self, topic: str, difficulty: str = "intermediate") -> Dict[str, Any]:
-        """AI-powered smart resource discovery with URL validation."""
-        print(f"🔍 Starting smart resource discovery for: {topic} (Level: {difficulty})")
+        """Simple resource discovery using only predefined curated links."""
+        print(f"🔍 Starting resource discovery for: {topic} (Level: {difficulty})")
         
-        # Step 1: AI generates curated resource suggestions
-        ai_resources = await self._ai_curated_resources(topic, difficulty)
-        
-        # Step 2: Validate and enhance resources
-        validated_resources = await self._validate_and_enhance_resources(ai_resources, topic)
-        
-        # Step 3: Get additional platform-specific resources
-        platform_resources = await self._get_platform_specific_resources(topic, difficulty)
-        
-        # Combine and rank all resources
-        all_resources = validated_resources + platform_resources
-        ranked_resources = self._rank_resources(all_resources, topic, difficulty)
+        # Use only the predefined curated resources - no additional generation
+        curated_resources = await self._ai_curated_resources(topic, difficulty)
         
         return {
-            "resources": ranked_resources[:6],  # Top 6 resources
+            "resources": curated_resources,  # Only predefined resources
             "difficulty": difficulty,
-            "estimated_time": self._calculate_study_time(ranked_resources[:6]),
-            "quality_score": self._calculate_quality_score(ranked_resources[:6]),
+            "estimated_time": "2-4 hours",
+            "quality_score": 9.0,
             "learning_path_suggested": True
         }
 
     async def _ai_curated_resources(self, topic: str, difficulty: str) -> List[Dict[str, Any]]:
-        """Use AI to generate curated, high-quality resource recommendations."""
+        """Return curated learning resources with direct links."""
         try:
-            prompt = f"""As an expert educator and learning resource curator, recommend the BEST 5-6 high-quality learning resources for: "{topic}" at {difficulty} level.
+            # Topic to URL mapping
+            topic_links = {
+                'javascript': 'https://www.geeksforgeeks.org/javascript/',
+                'python': 'https://www.geeksforgeeks.org/python-programming-language/',
+                'react': 'https://www.geeksforgeeks.org/reactjs-tutorial/',
+                'nodejs': 'https://www.geeksforgeeks.org/nodejs/',
+                'node.js': 'https://www.geeksforgeeks.org/nodejs/',
+                'java': 'https://www.geeksforgeeks.org/java/',
+                'data structures': 'https://www.geeksforgeeks.org/data-structures/',
+                'machine learning': 'https://www.geeksforgeeks.org/machine-learning/',
+                'sql': 'https://www.geeksforgeeks.org/sql-tutorial/',
+                'devops': 'https://www.geeksforgeeks.org/devops-tutorial/',
+                'digital marketing': 'https://www.geeksforgeeks.org/digital-marketing/',
+                'ui/ux': 'https://www.geeksforgeeks.org/ui-ux-tutorial/',
+                'ui/ux design': 'https://www.geeksforgeeks.org/ui-ux-tutorial/',
+                'cloud computing': 'https://www.geeksforgeeks.org/cloud-computing/',
+                'cybersecurity': 'https://www.geeksforgeeks.org/cybersecurity-tutorial/',
+                'blockchain': 'https://www.geeksforgeeks.org/blockchain-tutorial/',
+                'programming': 'https://www.geeksforgeeks.org/python-programming-language/',
+                'web development': 'https://www.geeksforgeeks.org/javascript/',
+                'frontend': 'https://www.geeksforgeeks.org/reactjs-tutorial/',
+                'backend': 'https://www.geeksforgeeks.org/nodejs/',
+                'database': 'https://www.geeksforgeeks.org/sql-tutorial/',
+                'algorithms': 'https://www.geeksforgeeks.org/data-structures/',
+                'ai': 'https://www.geeksforgeeks.org/machine-learning/',
+                'artificial intelligence': 'https://www.geeksforgeeks.org/machine-learning/'
+            }
 
-IMPORTANT GUIDELINES:
-1. Only suggest resources from these TRUSTED platforms:
-   - Official documentation sites
-   - GeeksforGeeks (use working URL patterns)
-   - MDN Web Docs (for web technologies)
-   - Real Python (for Python topics)
-   - W3Schools (for web development)
-   - Coursera/edX (for courses)
-   - YouTube (educational channels only)
-   - Stack Overflow (for Q&A)
-   - GitHub (for code examples)
+            # Normalize topic for matching
+            topic_lower = topic.lower().strip()
 
-2. For GeeksforGeeks, use these PROVEN URL patterns:
-   - https://www.geeksforgeeks.org/python-tutorial/
-   - https://www.geeksforgeeks.org/data-structures/
-   - https://www.geeksforgeeks.org/algorithms/
-   - https://www.geeksforgeeks.org/machine-learning/
-   - https://www.geeksforgeeks.org/artificial-intelligence/
+            # Find the best matching URL
+            url = None
+            for key, link in topic_links.items():
+                if key in topic_lower:
+                    url = link
+                    break
 
-3. Ensure URLs are:
-   - Actually accessible and working
-   - From reputable educational sources
-   - Appropriate for the difficulty level
-   - Cover the topic comprehensively
+            # Fallback to general programming if no match
+            if not url:
+                url = 'https://www.geeksforgeeks.org/python-programming-language/'
+
+            # Create resource object
+            resources = [{
+                "title": f"{topic.title()} - Complete Tutorial",
+                "platform": "GeeksforGeeks",
+                "type": "tutorial",
+                "url": url,
+                "description": f"Comprehensive {topic} tutorial with examples, exercises, and in-depth explanations suitable for {difficulty} learners.",
+                "quality_rating": 9,
+                "difficulty_match": 8 if difficulty == 'beginner' else 9,
+                "source": "curated_links",
+                "verified": True,
+                "final_score": 9
+            }]
+
+            return resources
+
+        except Exception as e:
+            print(f"Resource curation error: {e}")
+            return await self._fallback_quality_resources(topic, difficulty)
+
+    async def _fallback_ai_content(self, topic: str, difficulty: str) -> List[Dict[str, Any]]:
+        """Fallback method to generate basic AI content when main generation fails."""
+        try:
+            # Simple fallback content generation
+            prompt = f"""Create a basic learning guide for "{topic}" at {difficulty} level.
+
+Provide 2-3 learning resources with actual content:
 
 Return JSON array with:
-- title: Descriptive, accurate title
-- platform: Source platform name
-- type: "tutorial", "documentation", "course", "article", "video"
-- url: WORKING, accessible URL
-- description: What learner will gain (2-3 sentences)
-- difficulty_match: How well it matches requested difficulty (1-10)
-- quality_rating: Educational quality rating (1-10)
+- title: Clear title
+- platform: "Gemini AI Learning"
+- type: "ai_guide"
+- url: "#"
+- description: Brief description
+- content: Basic explanation of the topic
+- key_concepts: Array of concepts
+- learning_objectives: Array of objectives
 
 Topic: {topic}
-Difficulty: {difficulty}
-
-Return ONLY the JSON array."""
+Return ONLY JSON array."""
 
             response = self.model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.3,  # Lower temperature for more reliable URLs
-                    max_output_tokens=1200
+                    temperature=0.5,
+                    max_output_tokens=1500
                 )
             )
-            
+
             content = response.text.strip()
             if content.startswith('```json'):
                 content = content[7:]
             if content.endswith('```'):
                 content = content[:-3]
-            
+
             resources = json.loads(content.strip())
-            
-            # Validate the AI response structure
+
+            # Ensure fallback resources have required fields
             validated = []
             for resource in resources:
-                if all(key in resource for key in ['title', 'platform', 'type', 'url', 'description']):
-                    resource['source'] = 'ai_curated'
-                    resource['quality_rating'] = resource.get('quality_rating', 8)
-                    resource['difficulty_match'] = resource.get('difficulty_match', 8)
-                    validated.append(resource)
-            
+                resource['source'] = 'gemini_ai_fallback'
+                resource['platform'] = 'Gemini AI Learning'
+                resource['type'] = 'ai_guide'
+                resource['url'] = '#'
+                resource['quality_rating'] = 7
+                resource['difficulty_match'] = 7
+                resource['verified'] = True
+                resource['final_score'] = 7
+                validated.append(resource)
+
             return validated
-            
+
         except Exception as e:
-            print(f"AI resource curation error: {e}")
-            return await self._fallback_quality_resources(topic, difficulty)
+            print(f"Fallback AI content generation also failed: {e}")
+            # Ultimate fallback - static content
+            return [
+                {
+                    "title": f"Introduction to {topic}",
+                    "platform": "Gemini AI Learning",
+                    "type": "ai_guide",
+                    "url": "#",
+                    "description": f"Basic introduction to {topic} concepts",
+                    "content": f"This is an introduction to {topic}. {topic} is an important concept in {difficulty} level learning. Key points include understanding the fundamentals, practicing regularly, and applying concepts in real scenarios.",
+                    "key_concepts": [topic, "fundamentals", "practice"],
+                    "learning_objectives": [f"Understand basic {topic} concepts", f"Apply {topic} in practice"],
+                    "source": "static_fallback",
+                    "quality_rating": 5,
+                    "difficulty_match": 6,
+                    "verified": True,
+                    "final_score": 5
+                }
+            ]
 
     async def _validate_and_enhance_resources(self, resources: List[Dict], topic: str) -> List[Dict]:
         """Validate URLs and enhance resource information."""

@@ -29,7 +29,7 @@ export const LandingPage: React.FC = () => {
     {
       name: 'Sarah Johnson',
       role: 'Software Engineer',
-      content: 'K Mentor helped me transition from student to professional developer!',
+      content: 'ZENLEARN helped me transition from student to professional developer!',
       avatar: '👩‍💻'
     },
     {

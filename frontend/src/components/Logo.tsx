@@ -23,12 +23,12 @@ export const Logo: React.FC<LogoProps> = ({ size = 'md' }) => {
     <div className="flex items-center space-x-2">
       <img
         src={kmentorLogo}
-        alt="KMENTOR Logo"
+        alt="ZENLEARN Logo"
         className={`${imgSizes[size]} object-cover`}
         style={{ display: 'block' }}
       />
       <span className={`${sizeClasses[size]} font-bold text-blue-600`}>
-        KMENTOR
+        ZENLEARN
       </span>
     </div>
   );

@@ -7,7 +7,6 @@ import {
   CheckCircle, 
   ExternalLink, 
   ChevronRight,
-  FileText,
   Award,
   Target,
   Zap,
@@ -15,9 +14,7 @@ import {
 } from 'lucide-react';
 import { 
   EnhancedLearningPath, 
-  EnhancedLearningStep, 
-  VideoTimestamp,
-  GeeksForGeeksResource
+  EnhancedLearningStep
 } from '../services/enhancedLearningPathService';
 
 interface StepByStepLearningPathProps {
@@ -35,30 +32,6 @@ const StepByStepLearningPath: React.FC<StepByStepLearningPathProps> = ({
   const [activeTimestamp, setActiveTimestamp] = useState<string | null>(null);
 
   const isStepCompleted = (stepId: string) => completedSteps.includes(stepId);
-
-  const formatTimestamp = (timestamp: string) => {
-    const parts = timestamp.split(':');
-    if (parts.length === 2) {
-      return `${parts[0]}:${parts[1].padStart(2, '0')}`;
-    }
-    return timestamp;
-  };
-
-  const getYouTubeUrlWithTimestamp = (videoUrl: string, timestamp: string) => {
-    const timeInSeconds = convertTimestampToSeconds(timestamp);
-    return `${videoUrl}&t=${timeInSeconds}s`;
-  };
-
-  const convertTimestampToSeconds = (timestamp: string): number => {
-    const parts = timestamp.split(':');
-    if (parts.length === 2) {
-      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-    }
-    if (parts.length === 3) {
-      return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-    }
-    return 0;
-  };
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
@@ -349,36 +322,6 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
             </div>
           </div>
 
-          {/* GeeksforGeeks Documentation */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h4 className="font-semibold mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-green-600" />
-              GeeksforGeeks Documentation
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {step.documentation.map((doc, index) => (
-                <a
-                  key={doc.id}
-                  href={doc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">{doc.title}</span>
-                    <ExternalLink className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>{doc.estimatedReadTime}</span>
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs">
-                      {doc.difficulty}
-                    </span>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-
           {/* Practice Exercises */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h4 className="font-semibold mb-4 flex items-center">
@@ -386,7 +329,7 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
               Practice Exercises
             </h4>
             <div className="space-y-4">
-              {step.practiceExercises.map((exercise, index) => (
+              {step.practiceExercises.map((exercise) => (
                 <div key={exercise.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h5 className="font-medium">{exercise.title}</h5>
@@ -424,7 +367,7 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
               Code Examples
             </h4>
             <div className="space-y-4">
-              {step.codeExamples.map((example, index) => (
+              {step.codeExamples.map((example) => (
                 <div key={example.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                   <div className="bg-gray-50 dark:bg-gray-900 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                     <h5 className="font-medium">{example.title}</h5>

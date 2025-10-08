@@ -44,7 +44,9 @@ const AILearningHub: React.FC = () => {
     analyzeAssessmentResults,
     getPersonalizedRecommendations,
     getSkillGapAnalysis,
-    clearError
+    clearError,
+    learningResources,
+    getSmartResources
   } = useAIAgent();
 
   // Form states
@@ -74,6 +76,7 @@ const AILearningHub: React.FC = () => {
   // UI states
   const [activeTab, setActiveTab] = useState('generate');
   const [skillGapResults, setSkillGapResults] = useState<any>(null);
+  const [showLearningResources, setShowLearningResources] = useState(false);
   
   // Enhanced Learning Path states
   const [selectedPath, setSelectedPath] = useState<any>(null);
@@ -255,6 +258,9 @@ const AILearningHub: React.FC = () => {
     } else {
       // Fallback to regular AI journey generation
       await generateCompleteJourney(targetSkill, preferences);
+      // Also fetch learning resources using Gemini AI
+      await getSmartResources(targetSkill, difficulty);
+      setShowLearningResources(true);
     }
   };
 
@@ -1532,6 +1538,75 @@ const AILearningHub: React.FC = () => {
                     </table>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Curated Learning Resources */}
+      {showLearningResources && learningResources && (
+        <div className="bg-white rounded-lg border shadow-sm">
+          <div className="border-b px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <BookOpen className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold">Curated Learning Resource</h3>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <span>Difficulty: {learningResources.difficulty || 'N/A'}</span>
+                <span>•</span>
+                <span>{learningResources.estimated_time || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            {learningResources.resources && learningResources.resources.length > 0 ? (
+              <div className="space-y-4">
+                {learningResources.resources.map((resource: any, index: number) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow bg-gradient-to-r from-green-50 to-blue-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h4 className="text-xl font-semibold text-gray-900">{resource.title}</h4>
+                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                            Verified Tutorial
+                          </span>
+                        </div>
+                        <p className="text-gray-600 mb-4">{resource.description}</p>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
+                          <span className="flex items-center space-x-1">
+                            <ExternalLink className="h-4 w-4" />
+                            <span>{resource.platform}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <FileText className="h-4 w-4" />
+                            <span>Complete Tutorial</span>
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Action Button */}
+                      <div className="ml-4">
+                        <a
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-lg hover:from-blue-700 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          <span>Start Learning</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No learning resources available.</p>
+                <p className="text-sm">Try generating a journey for a different topic.</p>
               </div>
             )}
           </div>
