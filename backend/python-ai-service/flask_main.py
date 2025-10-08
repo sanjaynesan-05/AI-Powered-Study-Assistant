@@ -26,11 +26,12 @@ except ImportError as e:
 
 # Try to import individual agents (adjust these imports based on your actual agent structure)
 try:
-    from agents.learning_agent import get_learning_resources
-    print("✅ Successfully imported learning agent")
+    from agents.learning_agent import get_learning_resources, SmartLearningResourceAgent
+    print("✅ Successfully imported learning agent with smart discovery")
 except ImportError as e:
     print(f"⚠️ Learning agent not found: {e}")
     get_learning_resources = None
+    SmartLearningResourceAgent = None
 
 try:
     from agents.assessment_agent import generate_assessment
@@ -162,11 +163,41 @@ def generate_study_plan():
 
 @app.route('/learning-resources', methods=['POST'])
 def get_learning_resources_endpoint():
-    """Get learning resources using Python learning agent."""
+    """Get learning resources using Python learning agent with smart discovery."""
     try:
         data = request.get_json()
         logger.info(f"Received learning resources request: {data}")
         
+        # Use smart learning agent if available
+        api_key = os.getenv('GEMINI_API_KEY')
+        if SmartLearningResourceAgent and api_key:
+            try:
+                smart_agent = SmartLearningResourceAgent(api_key)
+                topic = data.get('topic', 'general programming')
+                difficulty = data.get('level', 'intermediate')
+                
+                # Use async method in sync context
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    result = loop.run_until_complete(smart_agent.smart_resource_discovery(topic, difficulty))
+                finally:
+                    loop.close()
+                
+                return jsonify({
+                    "success": True,
+                    "data": result,
+                    "enhanced": True,
+                    "ai_curated": True,
+                    "timestamp": datetime.now().isoformat()
+                }), 200
+                
+            except Exception as smart_error:
+                logger.warning(f"Smart agent failed, falling back to basic agent: {smart_error}")
+                # Fall back to basic agent
+        
+        # Fallback to basic learning agent
         if not get_learning_resources:
             return jsonify(create_fallback_response("Learning resources agent not available")), 503
         
@@ -176,11 +207,13 @@ def get_learning_resources_endpoint():
         return jsonify({
             "success": True,
             "data": result,
+            "enhanced": False,
             "timestamp": datetime.now().isoformat()
         }), 200
         
     except Exception as e:
         logger.error(f"Error in learning-resources: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
             "success": False,
             "error": str(e),

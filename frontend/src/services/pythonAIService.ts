@@ -5,6 +5,29 @@ export interface PythonAIResponse {
   data?: any;
   error?: string;
   timestamp: string;
+  enhanced?: boolean;
+  ai_curated?: boolean;
+}
+
+export interface LearningResource {
+  title: string;
+  platform: string;
+  type: string;
+  url: string;
+  description: string;
+  quality_rating?: number;
+  verified?: boolean;
+  final_score?: number;
+  source?: string;
+  difficulty_match?: number;
+}
+
+export interface EnhancedLearningResourcesResponse {
+  resources: LearningResource[];
+  difficulty: string;
+  estimated_time: string;
+  quality_score?: number;
+  learning_path_suggested?: boolean;
 }
 
 export interface StudyPlanRequest {
@@ -110,9 +133,24 @@ class PythonAIService {
     return this.makeRequest(PYTHON_AI_CONFIG.ENDPOINTS.STUDY_PLAN, request);
   }
 
-  // Get learning resources using Python AI agents
+  // Get learning resources using Python AI agents with enhanced quality metrics
   async getLearningResources(request: LearningResourcesRequest): Promise<PythonAIResponse> {
-    return this.makeRequest(PYTHON_AI_CONFIG.ENDPOINTS.LEARNING_RESOURCES, request);
+    try {
+      console.log('🔍 Requesting smart learning resources for:', request.topic);
+      const response = await this.makeRequest(PYTHON_AI_CONFIG.ENDPOINTS.LEARNING_RESOURCES, request);
+      
+      if (response.success && response.enhanced) {
+        console.log('✅ Enhanced AI-curated resources received');
+        console.log(`📊 Quality Score: ${response.data?.quality_score}/10`);
+        console.log(`⏱️ Estimated Time: ${response.data?.estimated_time}`);
+        console.log(`📚 Resources Found: ${response.data?.resources?.length || 0}`);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('❌ Learning resources request failed:', error);
+      throw error;
+    }
   }
 
   // Generate assessment using Python AI agents
