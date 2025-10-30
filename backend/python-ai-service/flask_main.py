@@ -373,10 +373,8 @@ if __name__ == '__main__':
 
     # Check if API keys are available
     gemini_key = os.getenv('GEMINI_API_KEY')
-    openai_key = os.getenv('OPENAI_API_KEY')
 
     print(f"🔑 GEMINI_API_KEY: {'✅ Found' if gemini_key else '❌ Missing'}")
-    print(f"🔑 OPENAI_API_KEY: {'✅ Found' if openai_key else '❌ Missing'}")
 
     # Only require GEMINI_API_KEY for basic functionality
     if not gemini_key:
