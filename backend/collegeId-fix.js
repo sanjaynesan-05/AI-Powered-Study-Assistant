@@ -1,1 +1,0 @@
-collegeId: {  type: String,  default: function() {    return 'college_' + this._id;  },},
