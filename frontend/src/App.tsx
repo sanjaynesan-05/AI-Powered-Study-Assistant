@@ -1,83 +1,137 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AIAgentProvider } from './contexts/AIAgentContext';
-import { Layout } from './components/Layout';
-import { LandingPage } from './pages/LandingPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { AIMentorPage } from './pages/AIMentorPage';
-import AILearningHub from './pages/AILearningHub';
-import { ResumeBuilderPage } from './pages/ResumeBuilderPage';
-import { LearningPathPage } from './pages/LearningPathPage';
-import { ContinueLearningPage } from './pages/ContinueLearningPage';
-import { RecommendationPage } from './pages/RecommendationPage';
-import YouTubeTest from './components/YouTubeTest';
-import AIAgentDemo from './components/AIAgentDemo';
-
-
-
-// AppContent component to handle routing and authentication state
-const AppContent: React.FC = () => {
-  return (
-    <Router>
-      <div className="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-gray-900">
-        <Routes>
-          {/* Always show dashboard/profile as home page */}
-          <Route path="/" element={<Navigate to="/profile" replace />} />
-          <Route element={<Layout />}>
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/ai-mentor" element={<AIMentorPage />} />
-            <Route path="/ai-learning-hub" element={<AILearningHub />} />
-            <Route path="/resume-builder" element={<ResumeBuilderPage />} />
-            <Route path="/learning-path" element={<LearningPathPage />} />
-            <Route path="/continue-learning" element={<ContinueLearningPage />} />
-            <Route path="/recommendation" element={<RecommendationPage />} />
-            <Route path="/youtube-test" element={<YouTubeTest />} />
-            <Route path="/ai-agents" element={<AIAgentDemo />} />
-          </Route>
-          {/* Catch-all: redirect unknown routes to dashboard/profile */}
-          <Route path="*" element={<Navigate to="/profile" replace />} />
-        </Routes>
-      </div>
-    </Router>
-  );
-};
+import React, { useState } from 'react';
+import { aiAgentService } from './services/aiAgentService';
+import { AgentOrchestrationView } from './components/AgentOrchestrationView';
+import { SkillGraphVisualization } from './components/SkillGraphVisualization';
+import { ExplainabilityPanel } from './components/ExplainabilityPanel';
+import { WellnessMeter } from './components/WellnessMeter';
 
 function App() {
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState<any>(null);
+  const [userInput, setUserInput] = useState('I want to learn Machine Learning');
+  const [masteredSkills, setMasteredSkills] = useState('Python, Mathematics Basics');
 
-  // Add a loading screen for better user experience
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 1500); // Show loading for 1.5 seconds
-    
-    return () => clearTimeout(timer);
-  }, []);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  if (isInitialLoading) {
-    return (
-      <div className="flex items-center justify-center w-full h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-violet-500">
-        <div className="text-center">
-          <h1 className="mb-4 text-4xl font-bold text-white">AI Mentor</h1>
-          <div className="w-16 h-16 mx-auto border-t-4 border-r-4 border-white rounded-full animate-spin"></div>
+    try {
+      const result = await aiAgentService.processLearningRequest({
+        user_id: 'demo_user',
+        user_input: userInput,
+        mastered_skills: masteredSkills.split(',').map(s => s.trim()).filter(s => s)
+      });
+
+      setResponse(result);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error processing request. Make sure backend is running on port 8000');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            🎓 AI-Powered Study Assistant
+          </h1>
+          <p className="text-gray-600">
+            Powered by 11 AI Agents + LangGraph Orchestration
+          </p>
+        </div>
+
+        {/* Input Form */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                What do you want to learn?
+              </label>
+              <input
+                type="text"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., I want to learn Machine Learning"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Skills you've already mastered (comma-separated)
+              </label>
+              <input
+                type="text"
+                value={masteredSkills}
+                onChange={(e) => setMasteredSkills(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Python, JavaScript, HTML"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {loading ? '🤖 Processing with 11 AI Agents...' : '🚀 Start Learning Journey'}
+            </button>
+          </form>
+        </div>
+
+        {/* Results */}
+        {response && (
+          <div className="space-y-6">
+            {/* Agent Orchestration */}
+            <AgentOrchestrationView
+              executionPath={response.agent_outputs ? Object.keys(response.agent_outputs) : []}
+              agentOutputs={response.agent_outputs || {}}
+              confidenceScores={response.confidence_scores || {}}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Skill Graph */}
+              {response.agent_outputs?.skill_graph && (
+                <SkillGraphVisualization
+                  skillDependencies={response.agent_outputs.skill_graph.skill_dependencies || {}}
+                  masteredSkills={response.agent_outputs.skill_graph.mastered_skills || []}
+                  currentSkill={response.current_skill || ''}
+                  learningPath={response.learning_path || []}
+                />
+              )}
+
+              {/* Wellness Meter */}
+              {response.agent_outputs?.wellness && (
+                <WellnessMeter
+                  fatigueLevel={response.agent_outputs.wellness.fatigue_level || 0}
+                  stressLevel={response.agent_outputs.wellness.stress_level || 0}
+                  emotionalState={response.emotional_tone || 'neutral'}
+                  burnoutRisk={response.agent_outputs.wellness.burnout_risk || 'low'}
+                  recommendations={response.wellness_recommendations || []}
+                />
+              )}
+            </div>
+
+            {/* Explainability Panel */}
+            <ExplainabilityPanel
+              explanations={response.explanations || {}}
+              reasoningChain={response.reasoning_chain || []}
+            />
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-gray-600 text-sm">
+          <p>Backend: http://localhost:8000 | API Docs: http://localhost:8000/docs</p>
+          <p className="mt-2">Built for SIH 2025 🏆</p>
         </div>
       </div>
-    );
-  }
-  
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AIAgentProvider>
-          <AppContent />
-        </AIAgentProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    </div>
   );
 }
 
 export default App;
-
-

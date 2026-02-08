@@ -2,19 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Google Login Button Customization */
-.google-login-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.google-login-wrapper div {
-  width: 280px !important;
-  border-radius: 8px !important;
-}
-
-/* Fix for COOP issues with Google Auth */
-iframe {
-  border: none;
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }

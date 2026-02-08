@@ -1,0 +1,40 @@
+# Python Backend __init__.py files
+
+# app/__init__.py
+"""AI Study Assistant GenAI Backend"""
+__version__ = "2.0.0"
+
+# app/agents/__init__.py
+"""AI Agents Package"""
+from .orchestrator import orchestrator
+from .personalization import personalization_agent
+from .skill_graph import skill_graph_agent
+from .reflection import reflection_agent
+from .explainability import explainability_agent
+
+__all__ = [
+    "orchestrator",
+    "personalization_agent",
+    "skill_graph_agent",
+    "reflection_agent",
+    "explainability_agent"
+]
+
+# app/langgraph/__init__.py
+"""LangGraph Orchestration Package"""
+from .graph import learning_graph
+from .state import AgentState
+
+__all__ = ["learning_graph", "AgentState"]
+
+# app/memory/__init__.py
+"""Memory Systems Package"""
+from .mongodb_store import memory_store
+
+__all__ = ["memory_store"]
+
+# app/utils/__init__.py
+"""Utilities Package"""
+from .llm import llm_client
+
+__all__ = ["llm_client"]
