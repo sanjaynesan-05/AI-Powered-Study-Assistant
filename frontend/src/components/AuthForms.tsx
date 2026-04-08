@@ -2,7 +2,25 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+
+// Bonus: Safe utility to decode the base64 JWT payload from Google locally
+const decodeJWT = (token: string) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Failed to decode JWT:", error);
+    return null;
+  }
+};
 
 interface AuthFormsProps {
   type: 'login' | 'signup' | null;
@@ -25,7 +43,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const { login, signup, googleLogin } = useAuth();
   // Google One Tap/GoogleLogin handler
-  const handleGoogleLoginSuccess = async (credentialResponse: { credential?: string }) => {
+  const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
     setLoading(true);
     try {
       const credential = credentialResponse.credential;
@@ -34,6 +52,17 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
         setLoading(false);
         return;
       }
+
+      // Bonus: Decode the User Info directly in the frontend for immediate logging/feedback
+      const userInfo = decodeJWT(credential);
+      if (userInfo) {
+        console.log("Authenticated Google User:", {
+          name: userInfo.name,
+          email: userInfo.email,
+          picture: userInfo.picture,
+        });
+      }
+
       const success = await googleLogin(credential);
       if (success) {
         setShowSuccess(true);
@@ -329,17 +358,25 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
 
         <div className="flex justify-center mt-4">
           <div style={{ width: '100%' }}>
-            <GoogleLogin
-              onSuccess={handleGoogleLoginSuccess}
-              onError={handleGoogleLoginError}
-              useOneTap
-              theme="outline"
-              size="large"
-              shape="rectangular"
-              text="signin_with"
-              width={400}
-              // The button will fill the parent div, which matches the login button's width
-            />
+            {/* 
+              Simplified GoogleLogin integration to prevent initialization conflicts.
+              One-Tap is disabled to prioritize debugging the regular button first.
+            */}
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+              <GoogleLogin
+                onSuccess={handleGoogleLoginSuccess}
+                onError={handleGoogleLoginError}
+                theme="outline"
+                size="large"
+                shape="rectangular"
+                text="signin_with"
+                width="100" // Filling the container
+              />
+            ) : (
+              <div className="p-2 text-xs text-center text-red-500 border border-red-200 rounded">
+                Google Client ID is missing. Check your .env file.
+              </div>
+            )}
           </div>
         </div>
 

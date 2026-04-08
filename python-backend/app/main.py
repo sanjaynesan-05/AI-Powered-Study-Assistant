@@ -12,6 +12,9 @@ from app.config import settings
 from app.langgraph.graph import learning_graph
 from app.langgraph.state import AgentState
 from app.memory.mongodb_store import memory_store
+from app.routes.auth_google import router as auth_google_router
+from app.db import engine, Base
+
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -19,6 +22,15 @@ app = FastAPI(
     description="Production-ready AI learning platform with LangGraph orchestration",
     version="2.0.0"
 )
+
+# Startup Database Initialization
+@app.on_event("startup")
+async def startup_event():
+    print("DEBUG: Initializing PostgreSQL Tables...")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    print("DEBUG: Active tables fully synchronized.")
+
 
 # CORS middleware
 app.add_middleware(
@@ -28,6 +40,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Authentication Router
+app.include_router(auth_google_router)
 
 # Request/Response Models
 class LearningRequest(BaseModel):
@@ -168,6 +183,228 @@ async def get_agents_status():
         "langgraph_workflow": "active",
         "self_reflection": "enabled",
         "long_term_memory": "enabled"
+    }
+
+# Additional Request Models for specific agent endpoints
+class StudyPlanRequest(BaseModel):
+    subject: str
+    difficulty: str
+    duration: str
+    goals: list
+    learningStyle: Optional[str] = "visual"
+
+class LearningResourcesRequest(BaseModel):
+    topic: str
+    level: str
+    format: Optional[list] = []
+    preferences: Optional[list] = []
+
+class AssessmentRequest(BaseModel):
+    subject: str
+    difficulty: str
+    questionCount: Optional[int] = 10
+    topics: Optional[list] = []
+
+class WellnessRequest(BaseModel):
+    stress_level: Optional[int] = 5
+    study_hours: Optional[int] = 0
+    sleep_hours: Optional[int] = 7
+    physical_activity: Optional[str] = "moderate"
+
+class ScheduleRequest(BaseModel):
+    subjects: list
+    available_hours: int
+    priorities: list
+    deadlines: Optional[list] = []
+
+class MotivationRequest(BaseModel):
+    current_mood: Optional[str] = "neutral"
+    challenges: Optional[list] = []
+    goals: Optional[list] = []
+    achievements: Optional[list] = []
+
+class PersonalizationRequest(BaseModel):
+    user_id: str
+    learning_preferences: Optional[dict] = {}
+    performance_data: Optional[dict] = {}
+
+# Specific Agent Endpoints
+@app.post("/study-plan")
+async def generate_study_plan(request: StudyPlanRequest):
+    """Generate personalized study plan using Scheduler agent"""
+    try:
+        from app.agents.scheduler import scheduler_agent
+        
+        state = {
+            "user_input": f"Create a study plan for {request.subject}",
+            "subject": request.subject,
+            "difficulty": request.difficulty,
+            "duration": request.duration,
+            "goals": request.goals,
+            "learning_style": request.learningStyle
+        }
+        
+        result = await scheduler_agent.generate(state)
+        
+        return {
+            "success": True,
+            "data": result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/learning-resources")
+async def get_learning_resources(request: LearningResourcesRequest):
+    """Get learning resources using Learning Resource agent"""
+    try:
+        from app.agents.learning_resource import learning_resource_agent
+        
+        state = {
+            "current_skill": request.topic,
+            "difficulty_preference": request.level,
+            "learning_style": request.preferences[0] if request.preferences else "visual"
+        }
+        
+        result = await learning_resource_agent.generate(state)
+        
+        return {
+            "success": True,
+            "data": {
+                "resources": result.get("resources", []),
+                "difficulty": request.level,
+                "estimated_time": "2-4 hours",
+                "quality_score": 8.5
+            },
+            "enhanced": True,
+            "ai_curated": True,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/assessment")
+async def generate_assessment(request: AssessmentRequest):
+    """Generate assessment using Assessment agent"""
+    try:
+        from app.agents.assessment import assessment_agent
+        
+        state = {
+            "current_skill": request.subject,
+            "difficulty_preference": request.difficulty,
+            "question_count": request.questionCount,
+            "topics": request.topics
+        }
+        
+        result = await assessment_agent.generate(state)
+        
+        return {
+            "success": True,
+            "data": result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/wellness-assessment")
+async def wellness_assessment(request: WellnessRequest):
+    """Get wellness assessment using Wellness agent"""
+    try:
+        from app.agents.wellness import wellness_agent
+        
+        state = {
+            "wellness_metrics": {
+                "stress_level": request.stress_level,
+                "study_hours": request.study_hours,
+                "sleep_hours": request.sleep_hours,
+                "physical_activity": request.physical_activity
+            }
+        }
+        
+        result = await wellness_agent.generate(state)
+        
+        return {
+            "success": True,
+            "data": result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/schedule-optimization")
+async def optimize_schedule(request: ScheduleRequest):
+    """Optimize schedule using Scheduler agent"""
+    try:
+        from app.agents.scheduler import scheduler_agent
+        
+        state = {
+            "subjects": request.subjects,
+            "available_hours": request.available_hours,
+            "priorities": request.priorities,
+            "deadlines": request.deadlines
+        }
+        
+        result = await scheduler_agent.generate(state)
+        
+        return {
+            "success": True,
+            "data": result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/motivation-boost")
+async def get_motivation(request: MotivationRequest):
+    """Get motivation boost using Motivation agent"""
+    try:
+        from app.agents.motivation import motivation_agent
+        
+        state = {
+            "emotional_tone": request.current_mood,
+            "challenges": request.challenges,
+            "goals": request.goals,
+            "achievements": request.achievements
+        }
+        
+        result = await motivation_agent.generate(state)
+        
+        return {
+            "success": True,
+            "data": result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/personalization")
+async def get_personalization(request: PersonalizationRequest):
+    """Get personalization settings using Personalization agent"""
+    try:
+        from app.agents.personalization import personalization_agent
+        
+        state = {
+            "user_id": request.user_id,
+            "learning_preferences": request.learning_preferences,
+            "performance_data": request.performance_data
+        }
+        
+        result = await personalization_agent.generate(state)
+        
+        return {
+            "success": True,
+            "data": result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health():
+    """Simple health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 if __name__ == "__main__":

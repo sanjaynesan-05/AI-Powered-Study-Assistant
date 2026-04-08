@@ -72,20 +72,30 @@ export const authService = {
   // Google login
   googleLogin: async (credential: string): Promise<UserResponse> => {
     try {
-      console.log('Logging in user with Google credential', credential ? 'Credential provided' : 'No credential');
+      console.log('Logging in user with Google credential');
       
-      // Check API URL for debugging
-      console.log('API URL:', api.defaults.baseURL);
-      
-      const response = await api.post<UserResponse>('/users/google-login', { credential });
+      // Use the new structured backend route
+      const response = await api.post<any>('/auth/google', { credential });
       console.log('Google login successful', response.data);
       
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
+      const authData = response.data;
+      
+      // Bridge the strict backend 'TokenResponse' to expected frontend 'UserResponse'
+      const userData: UserResponse = {
+        _id: authData.user.google_id,
+        name: authData.user.name,
+        email: authData.user.email,
+        role: "user",
+        profilePicture: authData.user.picture,
+        token: authData.access_token,
+      };
+
+      if (userData.token) {
+        localStorage.setItem('token', userData.token);
+        localStorage.setItem('user', JSON.stringify(userData));
       }
       
-      return response.data;
+      return userData;
     } catch (error: unknown) {
       // Detailed error logging
       if (axios.isAxiosError(error)) {
