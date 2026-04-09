@@ -3,30 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { X, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { CONFIG } from '../config/config';
 
-// Bonus: Safe utility to decode the base64 JWT payload from Google locally
-const decodeJWT = (token: string) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error("Failed to decode JWT:", error);
-    return null;
-  }
-};
+const API_BASE_URL = CONFIG.BACKEND_URL;
 
 interface AuthFormsProps {
   type: 'login' | 'signup' | null;
   onClose: () => void;
 }
-
 
 export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
   const [formType, setFormType] = useState<'login' | 'signup'>(type || 'login');
@@ -37,54 +21,12 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
       setFormType(type);
     }
   }, [type]);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const { login, signup, googleLogin } = useAuth();
-  // Google One Tap/GoogleLogin handler
-  const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
-    setLoading(true);
-    try {
-      const credential = credentialResponse.credential;
-      if (!credential) {
-        setError('Google login failed: No credential received.');
-        setLoading(false);
-        return;
-      }
-
-      // Bonus: Decode the User Info directly in the frontend for immediate logging/feedback
-      const userInfo = decodeJWT(credential);
-      if (userInfo) {
-        console.log("Authenticated Google User:", {
-          name: userInfo.name,
-          email: userInfo.email,
-          picture: userInfo.picture,
-        });
-      }
-
-      const success = await googleLogin(credential);
-      if (success) {
-        setShowSuccess(true);
-        navigate('/profile');
-        setTimeout(() => {
-          setShowSuccess(false);
-          onClose();
-        }, 1200);
-      } else {
-        setError('Google login failed. Please try again.');
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        setError('Google login failed: ' + (err.message || 'Unknown error'));
-      } else {
-        setError('Google login failed: Unknown error');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-  const handleGoogleLoginError = () => setError('Google login failed. Please try again.');
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -96,13 +38,54 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
   
   const [error, setError] = useState<string | null>(null);
 
+  const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
+    setLoading(true);
+    try {
+      // Deep Clean: Standardized fetch logic for token exchange
+      const res = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          token: credentialResponse.credential
+        })
+      });
+
+      const data = await res.json();
+      console.log("Google Login success:", data);
+
+      if (credentialResponse.credential) {
+         // Integrate with local AuthContext
+         const success = await googleLogin(credentialResponse.credential);
+         if (success) {
+           setShowSuccess(true);
+           navigate('/profile');
+           setTimeout(() => {
+             setShowSuccess(false);
+             onClose();
+           }, 1200);
+         } else {
+           setError('Google login failed. Please try again.');
+         }
+      }
+
+    } catch (err) {
+      console.error("Google Login Connection error:", err);
+      setError('Google login failed: Backend connection refused.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLoginError = () => setError('Google login failed. Please try again.');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      // Validate form fields with more detailed validation
       if (formType === 'login') {
         if (!formData.email) {
           setError('Email is required');
@@ -114,39 +97,33 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
           setLoading(false);
           return;
         }
-      } else { // Signup validation
+      } else {
         if (!formData.name || formData.name.trim() === '') {
           setError('Name is required');
           setLoading(false);
           return;
         }
-        
         if (!formData.email) {
           setError('Email is required');
           setLoading(false);
           return;
         }
-        
-        // Basic email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
           setError('Please enter a valid email address');
           setLoading(false);
           return;
         }
-        
         if (!formData.password) {
           setError('Password is required');
           setLoading(false);
           return;
         }
-        
         if (formData.password.length < 6) {
           setError('Password must be at least 6 characters');
           setLoading(false);
           return;
         }
-        
         if (formData.password !== formData.confirmPassword) {
           setError('Passwords do not match!');
           setLoading(false);
@@ -155,14 +132,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
       }
       
       if (formType === 'signup') {
-        console.log('Submitting signup form with data:', { 
-          name: formData.name.trim(), // Trim to remove any extra spaces
-          email: formData.email.trim().toLowerCase(), // Standardize email
-          password: formData.password ? '[MASKED]' : 'empty'
-        });
-        
         try {
-          // Clean the input data before sending
           const success = await signup(
             formData.name.trim(),
             formData.email.trim().toLowerCase(),
@@ -170,7 +140,6 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
           );
           
           if (success) {
-            console.log('Signup successful');
             setShowSuccess(true);
             setTimeout(() => {
               setShowSuccess(false);
@@ -178,23 +147,14 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
               navigate('/profile');
             }, 1200);
           } else {
-            console.error('Signup returned false');
             setError('Failed to sign up. Please check your information and try again.');
           }
         } catch (err: unknown) {
-          console.error('Error during signup:', err);
-          if (err instanceof Error) {
-            setError(err.message || 'An unexpected error occurred during signup');
-          } else {
-            setError('An unexpected error occurred during signup');
-          }
+          setError(err instanceof Error ? err.message : 'An unexpected error occurred during signup');
         }
       } else {
-        // Login flow
-        console.log('Attempting login with email:', formData.email);
         try {
           const success = await login(formData.email.trim().toLowerCase(), formData.password);
-          
           if (success) {
             onClose();
             navigate('/profile');
@@ -202,16 +162,10 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
             setError('Invalid email or password');
           }
         } catch (err: unknown) {
-          console.error('Error during login:', err);
-          if (err instanceof Error) {
-            setError(err.message || 'An unexpected error occurred during login');
-          } else {
-            setError('An unexpected error occurred during login');
-          }
+          setError(err instanceof Error ? err.message : 'An unexpected error occurred during login');
         }
       }
     } catch (error) {
-      console.error('Auth error:', error);
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -226,7 +180,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
                       transform transition-all duration-300 scale-100 hover:scale-[1.02]">
         {showSuccess && (
           <div className="absolute top-0 left-0 right-0 z-50 p-4 font-semibold text-center text-white bg-green-500 rounded-t-2xl animate-fade-in">
-            Signed up successfully!
+            Success!
           </div>
         )}
         <button
@@ -358,23 +312,22 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
 
         <div className="flex justify-center mt-4">
           <div style={{ width: '100%' }}>
-            {/* 
-              Simplified GoogleLogin integration to prevent initialization conflicts.
-              One-Tap is disabled to prioritize debugging the regular button first.
-            */}
-            {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
-              <GoogleLogin
-                onSuccess={handleGoogleLoginSuccess}
-                onError={handleGoogleLoginError}
-                theme="outline"
-                size="large"
-                shape="rectangular"
-                text="signin_with"
-                width="100" // Filling the container
-              />
+            {CONFIG.DEMO_MODE ? (
+               <div className="p-4 border-2 border-dashed border-blue-400 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-center">
+                  <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2">DEMO MODE ACTIVE</p>
+                  <GoogleLogin
+                    onSuccess={handleGoogleLoginSuccess}
+                    onError={handleGoogleLoginError}
+                    theme="outline"
+                    size="large"
+                    shape="rectangular"
+                    text="signin_with"
+                    width="300"
+                  />
+               </div>
             ) : (
               <div className="p-2 text-xs text-center text-red-500 border border-red-200 rounded">
-                Google Client ID is missing. Check your .env file.
+                Google Login is only available in DEMO_MODE or with valid Client ID.
               </div>
             )}
           </div>

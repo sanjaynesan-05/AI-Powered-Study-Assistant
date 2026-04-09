@@ -15,15 +15,15 @@ async def auth_google(request_data: GoogleAuthRequest, session: AsyncSession = D
     """
     Complete backend authentication system for Google OAuth utilizing PostgreSQL (NeonDB).
     """
-    print(f"DEBUG: Received token starting with: {request_data.credential[:15]}...")
+    print(f"DEBUG: Received token starting with: {request_data.token[:15]}...")
     try:
-        # Get GOOGLE_CLIENT_ID from environment if specified, otherwise verify without audience constraint
-        client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+        # GOOGLE_CLIENT_ID matches frontend exactly for strict verification
+        GOOGLE_CLIENT_ID = "822870483476-s93qhpao8sv7imnsir4vuqa5g9l8cpr9.apps.googleusercontent.com"
         
         idinfo = id_token.verify_oauth2_token(
-            request_data.credential, 
+            request_data.token, 
             requests.Request(),
-            client_id
+            GOOGLE_CLIENT_ID
         )
         
         email = idinfo["email"]

@@ -7,20 +7,38 @@ from app.config import settings
 from typing import Dict, List
 import aiohttp
 
+from app.memory.vector_store import vector_store
+from app.utils.embeddings import embedding_engine
+
 class LearningResourceAgent:
-    """Generates AI explanations and curates external resources"""
+    """Generates AI explanations and curates external resources with RAG support"""
     
     async def generate(self, state: AgentState) -> Dict:
-        """Generate personalized learning resources"""
+        """Generate personalized learning resources with contextual RAG memory"""
         
         current_skill = state.get("current_skill", "")
         learning_style = state.get("learning_style", "visual")
         difficulty = state.get("difficulty_preference", "intermediate")
         
-        # Generate AI explanation
-        explanation = await self._generate_explanation(current_skill, learning_style, difficulty)
+        # 1. RAG: Retrieve context from vector store
+        context_docs = []
+        try:
+            # Look up existing material on the skill
+            results = await vector_store.query(
+                collection_name="subject_materials",
+                query_texts=[current_skill],
+                n_results=3
+            )
+            context_docs = results.get("documents", [[]])[0]
+            if context_docs:
+                logger.info(f"RAG: Found {len(context_docs)} relevant context pieces for {current_skill}")
+        except Exception as e:
+            logger.warning(f"RAG Retrieval failed: {e}")
         
-        # Curate external resources
+        # 2. Generate AI explanation with context
+        explanation = await self._generate_explanation(current_skill, learning_style, difficulty, context_docs)
+        
+        # 3. Curate external resources
         resources = await self._curate_resources(current_skill, learning_style, difficulty)
         
         return {
@@ -46,8 +64,8 @@ class LearningResourceAgent:
             ]
         }
     
-    async def _generate_explanation(self, skill: str, style: str, difficulty: str) -> str:
-        """Generate AI-powered explanation adapted to learning style"""
+    async def _generate_explanation(self, skill: str, style: str, difficulty: str, context: List[str] = None) -> str:
+        """Generate AI-powered explanation adapted to learning style with contextual insights"""
         
         style_instructions = {
             "visual": "Use visual metaphors, diagrams descriptions, and spatial analogies. Describe how things look and relate visually.",
@@ -56,9 +74,15 @@ class LearningResourceAgent:
             "reading": "Use detailed text, clear definitions, and comprehensive written examples. Be thorough and structured."
         }
         
+        context_str = "\n".join([f"- {c}" for c in context]) if context else "No additional context available."
+        
         prompt = f"""
         Explain {skill} to a {difficulty} level learner with {style} learning style.
         
+        USE THE FOLLOWING CONTEXTUAL FACTS IF RELEVANT:
+        {context_str}
+        
+        STYLE INSTRUCTIONS:
         {style_instructions.get(style, style_instructions['visual'])}
         
         Provide:

@@ -3,9 +3,12 @@ export const CONFIG = {
   // YouTube API Configuration - Read from Vite environment variables
   YOUTUBE_API_KEY: import.meta.env.VITE_YOUTUBE_API_KEY || '',
   
-  // Backend API Configuration - UPDATED TO PYTHON FLASK API
-  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
+  // Backend API Configuration - UPDATED TO FASTAPI (PORT 8001)
+  BACKEND_URL: 'http://localhost:8001',
   
+  // Deep Clean: Demo Mode for presentation stability
+  DEMO_MODE: true,
+
   // AI Agent Configuration
   AI_AGENTS_ENABLED: true,
   
@@ -76,7 +79,7 @@ export const isFeatureEnabled = (feature: keyof typeof CONFIG.FEATURES): boolean
 
 // Python AI Service Configuration
 export const PYTHON_AI_CONFIG = {
-  BASE_URL: 'http://localhost:8000',
+  BASE_URL: 'http://localhost:8001',
   ENDPOINTS: {
     STUDY_PLAN: '/study-plan',
     LEARNING_RESOURCES: '/learning-resources',

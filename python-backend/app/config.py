@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     # Server
     PORT: int = 8000
     ENVIRONMENT: str = "development"
+    DEMO_MODE: bool = True
     
     # Database - NeonDB PostgreSQL & MongoDB
     DATABASE_URL: str
@@ -23,10 +24,15 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 43200
     
     # Vector DB
+    CHROMA_HOST: str = "localhost"
+    CHROMA_PORT: int = 8000
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_db"
     
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+    
     # CORS
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://localhost:3001"
     
     @property
     def cors_origins_list(self) -> List[str]:

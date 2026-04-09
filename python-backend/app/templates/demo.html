@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Assistant | Live Demo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .agent-pill { transition: all 0.3s ease; }
+        .agent-active { background: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .cursor-blink { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="min-h-screen py-10 px-4 md:px-0">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-white mb-1">AI Study Assistant</h1>
+                <p class="text-slate-400">Multi-Agent Intelligence Orchestrator <span class="bg-blue-600/20 text-blue-400 text-xs px-2 py-0.5 rounded ml-2 border border-blue-500/20">v2.0</span></p>
+            </div>
+            <div id="status-badge" class="glass px-4 py-2 rounded-full flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-sm font-medium">Demo Mode Active</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="grid gap-6">
+            
+            <!-- Input Card -->
+            <div class="glass p-6 rounded-2xl shadow-xl">
+                <label for="prompt" class="block text-sm font-medium text-slate-300 mb-3">Ask your study assistant...</label>
+                <div class="relative">
+                    <textarea id="prompt" rows="3" 
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600"
+                        placeholder="e.g., Explain how recursion works in Python with examples..."></textarea>
+                    <button id="send-btn" 
+                        class="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                        <span>Execute Pipeline</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard / Loading Row -->
+            <div id="processing-row" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="agent-pill glass p-3 rounded-xl flex items-center gap-3 opacity-50" id="agent-orchestrator">
+                    <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+                    <span class="text-xs uppercase font-bold tracking-wider">Orchestrator</span>
+                </div>
+                <div class="agent-pill glass p-3 rounded-xl flex items-center gap-3 opacity-50" id="agent-memory">
+                    <div class="w-2 h-2 rounded-full bg-purple-400"></div>
+                    <span class="text-xs uppercase font-bold tracking-wider">Memory</span>
+                </div>
+                <div class="agent-pill glass p-3 rounded-xl flex items-center gap-3 opacity-50" id="agent-expert">
+                     <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                     <span class="text-xs uppercase font-bold tracking-wider" id="expert-name">Specialist</span>
+                </div>
+                <div class="agent-pill glass p-3 rounded-xl flex items-center gap-3 opacity-50" id="agent-eval">
+                    <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                    <span class="text-xs uppercase font-bold tracking-wider">Evaluation</span>
+                </div>
+            </div>
+
+            <!-- Result Card -->
+            <div id="result-card" class="hidden glass p-8 rounded-2xl shadow-2xl border-l-4 border-blue-500">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span id="intent-tag" class="bg-blue-500/20 text-blue-400 text-xs px-3 py-1 rounded-full border border-blue-500/30 font-bold uppercase tracking-widest mr-2">Learning</span>
+                        <span id="timing-tag" class="text-slate-500 text-xs ml-2">Elapsed: 0.0s</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="text-right">
+                            <p class="text-[10px] text-slate-500 uppercase font-black">Main Model</p>
+                            <p id="model-tag" class="text-xs text-slate-300 font-mono">llama3.2:3b</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="response-content" class="prose prose-invert max-w-none text-slate-200 leading-relaxed text-lg">
+                    <!-- AI response injected here -->
+                </div>
+
+                <!-- Trace Footer -->
+                 <div class="mt-8 pt-6 border-t border-slate-800 flex flex-wrap gap-4">
+                     <span id="memory-status" class="text-xs text-slate-500 border border-slate-800 px-3 py-1 rounded bg-slate-900/50">Memory Context: Found</span>
+                 </div>
+            </div>
+
+        </main>
+
+        <footer class="mt-20 text-center text-slate-500 text-sm">
+            <p>Designed for Enterprise-Grade Multi-Agent Evaluation</p>
+        </footer>
+    </div>
+
+    <script>
+        const btn = document.getElementById('send-btn');
+        const promptInput = document.getElementById('prompt');
+        const resultCard = document.getElementById('result-card');
+        const processingRow = document.getElementById('processing-row');
+
+        btn.onclick = async () => {
+            const prompt = promptInput.value.trim();
+            if(!prompt) return;
+
+            // UI Reset
+            btn.disabled = true;
+            btn.innerText = 'Orchestrating...';
+            resultCard.classList.add('hidden');
+            processingRow.classList.remove('hidden');
+            resetAgents();
+
+            try {
+                // Step 1: Animation Start (Orchestrator)
+                activateAgent('agent-orchestrator');
+                
+                const start = performance.now();
+                const response = await fetch('/ai', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prompt: prompt})
+                });
+                const data = await response.json();
+                
+                // Animation logic based on trace
+                if(data.context_found) activateAgent('agent-memory');
+                
+                data.agents_used.forEach(agent => {
+                    if(agent.includes('Learning') || agent.includes('Coding') || agent.includes('Mentor')) {
+                        document.getElementById('expert-name').innerText = agent;
+                        activateAgent('agent-expert');
+                    }
+                    if(agent.includes('Evaluation')) activateAgent('agent-eval');
+                });
+
+                // Display Content
+                document.getElementById('intent-tag').innerText = data.intent;
+                document.getElementById('timing-tag').innerText = `Total Cycle: ${data.elapsed_seconds}s`;
+                document.getElementById('model-tag').innerText = data.model_used;
+                document.getElementById('memory-status').innerText = `Memory Context: ${data.context_found ? 'RETRIEVED' : 'NONE'}`;
+                
+                // Format response (simple markdown-like)
+                document.getElementById('response-content').innerHTML = data.response.replace(/\n/g, '<br>');
+                
+                resultCard.classList.remove('hidden');
+                
+            } catch (err) {
+                console.error(err);
+                alert("Pipeline execution failed. Check console or Ollama status.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Execute Pipeline';
+            }
+        };
+
+        function activateAgent(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('opacity-50');
+            el.classList.add('agent-active');
+        }
+
+        function resetAgents() {
+            document.querySelectorAll('.agent-pill').forEach(el => {
+                el.classList.add('opacity-50');
+                el.classList.remove('agent-active');
+            });
+            document.getElementById('expert-name').innerText = 'Specialist';
+        }
+    </script>
+</body>
+</html>

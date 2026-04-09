@@ -1,25 +1,20 @@
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AIAgentProvider } from './contexts/AIAgentContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import App from './App.tsx';
 import './index.css';
 
-// 1. Properly pull from Vite's environment variable map
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-
-if (!GOOGLE_CLIENT_ID) {
-  console.warn("Missing VITE_GOOGLE_CLIENT_ID in your .env file!");
-}
+// 1. Hardcoded Client ID for absolute stability during demo
+const GOOGLE_CLIENT_ID = "822870483476-s93qhpao8sv7imnsir4vuqa5g9l8cpr9.apps.googleusercontent.com";
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      {/* ThemeProvider added near root to ensure widespread compatibility and availability */}
-      <ThemeProvider>
+  <BrowserRouter>
+    <ThemeProvider>
+      <ErrorBoundary>
         <AuthProvider>
           <AIAgentProvider>
             <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
@@ -27,7 +22,7 @@ createRoot(document.getElementById('root')!).render(
             </GoogleOAuthProvider>
           </AIAgentProvider>
         </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
-  </StrictMode>
+      </ErrorBoundary>
+    </ThemeProvider>
+  </BrowserRouter>
 );

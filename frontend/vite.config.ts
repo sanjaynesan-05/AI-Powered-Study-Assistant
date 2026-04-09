@@ -9,16 +9,12 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
-    headers: {
-      'Cross-Origin-Opener-Policy': 'unsafe-none'
-    },
-    // Using port 3001 temporarily due to port 3000 permission issues
     port: 3001,
     strictPort: true,
     proxy: {
-      // Proxy API requests to backend
+      // Deep Clean: Syncing proxy to port 8001 for FastAPI
       '/api': {
-        target: 'http://localhost:5001', // Updated to match our backend port
+        target: 'http://localhost:8001',
         changeOrigin: true,
         secure: false
       }

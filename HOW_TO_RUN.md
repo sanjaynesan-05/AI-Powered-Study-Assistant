@@ -1,74 +1,89 @@
-# How to Run the AI-Powered Study Assistant
+# 🚀 How to Run: AI Study Assistant (GenAI v2.0)
 
-This guide consolidates all the necessary terminal commands to install dependencies, run the application, and execute tests.
+This guide provides the complete set of commands to boot the multi-agent AI environment, orchestrate the LLMs, and access the live demo dashboard.
 
-## 1. Using Startup Scripts (Automated)
+---
 
-The easiest way to start both the backend and frontend simultaneously is to use the provided startup scripts from the root directory.
+## 🛠️ Step 1: LLM Setup (Ollama)
+The system requires specific models to be installed locally. Open a terminal and run:
 
-**For Windows:**
 ```bash
-.\start_services.bat
-```
-
-**For macOS/Linux:**
-```bash
-./start_services.sh
+# Pull the core models
+ollama pull llama3.2:3b          # Main Demo/Learning model
+ollama pull qwen2.5:3b-instruct   # Intent Classification
+ollama pull qwen2.5-coder:7b     # Specialized Coding agent
+ollama pull mistral:7b           # Evaluation & Reasoning
+ollama pull nomic-embed-text      # Memory/RAG embeddings
+ollama pull KMENTOR_v2.0          # Mentor agent
 ```
 
 ---
 
-## 2. Running Manually (Step-by-Step)
+## 🐍 Step 2: Backend Setup (FastAPI)
+Navigate to the backend directory, install dependencies, and pre-warm the VRAM.
 
-If you prefer to start the services in separate terminal windows, follow these steps.
+```bash
+# 1. Navigate to backend
+cd python-backend
 
-### Backend (Python FastAPI)
+# 2. Setup Virtual Environment (if not already done)
+python -m venv venv
+.\venv\Scripts\activate
 
-1. Open a terminal and navigate to the backend directory:
-   ```bash
-   cd python-backend
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Start the server (runs on `http://localhost:8000`):
-   ```bash
-   venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
-   ```
-   *(Ensure you have your `.env` file configured in this directory before starting).*
+# 3. Install Core & Demo Dependencies
+pip install -r requirements.txt
+pip install jinja2
 
-### Frontend (React)
-
-1. Open a **new** terminal window and navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the React development server (runs on `http://localhost:3000`):
-   ```bash
-   npm run dev
-   ```
-   *(Note: The `README.md` mentions `npm start`, but `start_services.bat` uses `npm run dev`. Both usually work depending on package.json, but `npm run dev` is standard for tools like Vite/Next.js).*
+# 4. Pre-warm the Models (CRITICAL for demo speed)
+# This loads all 3B and 7B models into your GPU memory ahead of time.
+python prewarm_demo.py
+```
 
 ---
 
-## 3. Running Tests
+## 🏃 Step 3: Start the Backend
+Start the production-ready FastAPI server with monitoring and demo flags active.
 
-To verify the system functionality via the test suite, run the following commands:
+```bash
+# Run the server on port 8001
+venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+```
 
-1. Navigate to the backend directory:
-   ```bash
-   cd python-backend
-   ```
-2. Install development dependencies (needed for testing):
-   ```bash
-   pip install -r requirements-dev.txt
-   ```
-3. Run the comprehensive test suite (Unit, API, and Integration tests):
-   ```bash
-   pytest tests/ -v
-   ```
+---
+
+## 💻 Step 4: Start the Frontend (Optional)
+If you are using the React interface, start it in a separate terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 📊 Step 5: Access the Demo & Monitoring
+Once the services are running, use these URLs to interact with and evaluate the system:
+
+| Endpoint | Purpose | URL |
+| :--- | :--- | :--- |
+| **Demo Dashboard** | Visual interface for the multi-agent demo | [http://127.0.0.1:8001/view-demo](http://127.0.0.1:8001/view-demo) |
+| **System Health** | Rich diagnostic report of all services | [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health) |
+| **Full Metrics** | Real-time performance & agent success rates | [http://127.0.0.1:8001/metrics](http://127.0.0.1:8001/metrics) |
+| **Model Registry** | List of loaded and available LLMs | [http://127.0.0.1:8001/demo](http://127.0.0.1:8001/demo) |
+
+---
+
+## 🧪 Quick Verification
+You can test the backend pipeline directly from PowerShell:
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8001/ai" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body "{'prompt': 'Write a Python script for a binary search.'}"
+```
+
+---
+
+**Note:** Ensure `DEMO_MODE=True` is set in `app/config.py` for high-speed lightweight routing during the presentation.

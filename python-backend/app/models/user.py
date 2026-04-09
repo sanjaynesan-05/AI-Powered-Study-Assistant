@@ -20,7 +20,7 @@ class User(Base):
 
 # --- Pydantic API Schemas ---
 class GoogleAuthRequest(BaseModel):
-    credential: str
+    token: str
 
 class UserResponse(BaseModel):
     email: EmailStr

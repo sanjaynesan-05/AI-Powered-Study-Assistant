@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./python-backend
+      dockerfile: Dockerfile
+    container_name: study-assistant-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./python-backend/.env
+    depends_on:
+      - redis
+      - chroma
+    environment:
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama-lb:11434
+    networks:
+      - study-net
+
+  worker:
+    build:
+      context: ./python-backend
+      dockerfile: Dockerfile
+    container_name: study-assistant-worker
+    command: celery -A app.celery.worker.celery_app worker --loglevel=info --concurrency=1
+    env_file:
+      - ./python-backend/.env
+    environment:
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama-lb:11434
+    depends_on:
+      - redis
+      - chroma
+    networks:
+      - study-net
+
+  redis:
+    image: redis:alpine
+    container_name: study-assistant-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - study-net
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: study-assistant-chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma-data:/chroma/data
+    networks:
+      - study-net
+
+  # Distributed Ollama Setup Prototype
+  ollama-1:
+    image: ollama/ollama:latest
+    container_name: ollama-worker-1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ollama-data-1:/root/.ollama
+    networks:
+      - study-net
+
+  # HAProxy Load Balancer for Ollama mesh
+  ollama-lb:
+    image: haproxy:latest
+    container_name: ollama-lb
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - ollama-1
+    networks:
+      - study-net
+
+networks:
+  study-net:
+    driver: bridge
+
+volumes:
+  chroma-data:
+  ollama-data-1:
