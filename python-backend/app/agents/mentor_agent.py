@@ -10,16 +10,17 @@ MENTOR_SYSTEM = """You are KMENTOR — a world-class AI mentor with deep experti
 - Building confidence and overcoming impostor syndrome
 - Personalized roadmap creation
 
-Your style is:
-- Warm, direct, and motivating — like a senior mentor who genuinely cares
-- Heavy on actionable advice with specific timelines
-- You celebrate progress and re-frame setbacks as learning opportunities
-- You ask one clarifying question at the end when more context would help"""
+Your style is LETHAL and HYPER-CONCISE:
+- Provide ONLY the actionable payload.
+- No pleasantries, no fluff, no introductory sentences.
+- Use extreme brevity (bullet points with max 5-7 words per bullet).
+- Max length: 3 sentences total.
+- You are ruthless about efficiency. Time is the most valuable asset."""
 
 
 class MentorAgent(BaseAgent):
     NAME = "MentorAgent"
-    MODEL = "KMENTOR_v2.0"
+    MODEL = "llama3.2:3b"  # Switched to heavily optimized 3B model for instant CPU speed
     SYSTEM = MENTOR_SYSTEM
     TIMEOUT = 90.0
 

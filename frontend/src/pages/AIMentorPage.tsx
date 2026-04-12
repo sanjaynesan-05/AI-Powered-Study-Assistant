@@ -348,7 +348,7 @@ I can help you with programming, career guidance, study techniques, and much mor
                          style={{ animationDelay: '0.2s' }} />
                   </div>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    AI is thinking...
+                    🤖 Thinking... (may take up to 1-2 minutes)
                   </span>
                 </div>
               </div>

@@ -58,7 +58,11 @@ class OllamaClient:
             "model": model,
             "prompt": prompt,
             "stream": False,
-            "options": {"temperature": temperature},
+            "options": {
+                "temperature": temperature,
+                "num_ctx": 1024,      # Reduce context size for much faster CPU inference
+                "num_predict": 300,   # Force concise, lethal answers (prevent endless rambling)
+            },
         }
         if system:
             payload["system"] = system

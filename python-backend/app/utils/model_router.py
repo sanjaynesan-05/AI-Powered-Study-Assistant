@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 #  Model Configuration Mapping                                        #
 # ------------------------------------------------------------------ #
 
-# Mapping tasks to the best suited models
+# Mapping tasks to the fastest suited models for CPU
 MODEL_MAP = {
     "chat": "llama3.2:3b",
     "motivation": "llama3.2:3b",
     "coding": "qwen2.5-coder:7b",
-    "learning": "llama3:8b",
-    "reasoning": "mistral:7b",
-    "mentor": "KMENTOR_v2.0",
+    "learning": "llama3.2:3b",
+    "reasoning": "qwen2.5:3b-instruct",
+    "mentor": "llama3.2:3b",
 }
 
 # The model used for classification itself
@@ -75,7 +75,7 @@ async def classify_task(prompt: str) -> str:
 
 def select_model(task: str) -> str:
     """Select the model based on the classified task."""
-    return MODEL_MAP.get(task, "llama3:8b")
+    return MODEL_MAP.get(task, "llama3.2:3b")
 
 async def get_routed_response(prompt: str) -> Dict[str, str]:
     """

@@ -26,7 +26,7 @@ class AIService {
   constructor() {
     // Updated to use Python Flask backend
     this.baseUrl = PYTHON_AI_CONFIG.BASE_URL;
-    this.timeout = 30000; // 30 seconds timeout
+    this.timeout = 120000; // 120 seconds timeout (allows slow local LLM)
   }
 
   /**

@@ -33,6 +33,7 @@ from app.api.monitoring_middleware import MonitoringMiddleware
 from app.utils.llm import router as llm_router
 from app.utils.metrics import metrics
 from app.routes.auth_google import router as auth_google_router
+from app.routes.ai_agents import router as ai_agents_router
 from app.db import engine, Base
 
 
@@ -59,6 +60,16 @@ async def startup_event():
             f"Database startup skipped (PostgreSQL not available): {e}. "
             "AI endpoints will still function normally."
         )
+        
+    # Warm up Ollama model
+    try:
+        from app.utils.ollama_client import ollama_client
+        logger.info("Warming up local Ollama models in the background...")
+        # Fire and forget a tiny request to load the model into memory
+        import asyncio
+        asyncio.create_task(ollama_client.generate(prompt="hi", model="KMENTOR_v2.0", temperature=0.1))
+    except Exception as e:
+        logger.warning(f"Ollama warmup failed: {e}")
 
 
 
@@ -82,6 +93,9 @@ app.add_middleware(
 
 # Include Authentication Router
 app.include_router(auth_google_router)
+
+# Include AI Agents Router
+app.include_router(ai_agents_router)
 
 # Request/Response Models
 class LearningRequest(BaseModel):
