@@ -243,10 +243,16 @@ export const AIAgentProvider: React.FC<AIAgentProviderProps> = ({ children }) =>
       
       console.log(`🚀 Starting orchestrated journey generation for: ${targetSkill}`);
       
-      // Fallback for missing aiAgentService.generateCompleteJourney
+      // Call the actual backend persistence endpoints concurrently!
+      const [newPath, newAssessment] = await Promise.all([
+        generateLearningPath(targetSkill, "intermediate", preferences),
+        generateAssessment(targetSkill, "intermediate", 5)
+      ]);
+
       const journey: AIJourney = {
-        id: "journey-1",
-        learningPath: { id: "path-1", title: targetSkill, modules: [] },
+        id: "journey-" + Date.now(),
+        learningPath: newPath || { id: "path-" + Date.now(), title: targetSkill, modules: [] },
+        assessment: newAssessment || undefined
       };
       
       setCurrentJourney(journey);

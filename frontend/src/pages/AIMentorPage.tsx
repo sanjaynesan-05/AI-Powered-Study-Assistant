@@ -3,6 +3,49 @@ import { Send, Bot, User, Clock, RefreshCw } from 'lucide-react';
 import { aiMentorService, type AIResponse, type StudyTopic } from '../services/aiMentorService';
 import { RefinedAIResponse } from '../components/RefinedAIResponse';
 
+import { Link, useNavigate } from 'react-router-dom';
+import { useAIAgent } from '../contexts/AIAgentContext';
+
+/**
+ * Action Types representing structured multi-agent intentions
+ */
+type ActionType = 
+  | "GENERATE_COURSE" 
+  | "GENERATE_ASSESSMENT" 
+  | "GET_RECOMMENDATIONS" 
+  | "CHAT";
+
+/**
+ * Hybrid Intent Parser
+ * Converts plain text chat into structured Action Types and Topics
+ */
+const parseUserIntent = (message: string): { type: ActionType; topic?: string } => {
+  const lowerMsg = message.toLowerCase();
+  
+  // Learning Path / Course triggers
+  const courseMatch = lowerMsg.match(/(?:create|generate|make|build) a (?:course|path|journey|roadmap) (?:on|for|about) (.*)/i) ||
+                      lowerMsg.match(/(?:teach me|i want to learn) (.*)/i);
+  if (courseMatch) {
+    const topic = courseMatch[1].trim().replace(/^(how to |about )/, '');
+    return { type: "GENERATE_COURSE", topic };
+  }
+
+  // Assessment triggers
+  const assessMatch = lowerMsg.match(/(?:give|create|generate) (?:an )?assessment (?:on|for) (.*)/i) ||
+                      lowerMsg.match(/(?:test me|quiz me) (?:on|for|about) (.*)/i);
+  if (assessMatch) {
+    const topic = assessMatch[1].trim();
+    return { type: "GENERATE_ASSESSMENT", topic };
+  }
+
+  // Recommendations triggers
+  if (lowerMsg.includes("recommend") && (lowerMsg.includes("skills") || lowerMsg.includes("topics") || lowerMsg.includes("roadmap"))) {
+    return { type: "GET_RECOMMENDATIONS" };
+  }
+
+  return { type: "CHAT" };
+};
+
 /**
  * AI Mentor Chat Message Interface
  */
@@ -13,6 +56,7 @@ interface ChatMessage {
   timestamp: Date;
   topic?: string;
   isError?: boolean;
+  actionType?: ActionType;
 }
 
 /**
@@ -28,6 +72,14 @@ export const AIMentorPage: React.FC = () => {
   const [availableTopics, setAvailableTopics] = useState<StudyTopic[]>([]);
   const [isServiceHealthy, setIsServiceHealthy] = useState(true);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+  
+  // Connect to the global AI Agent Context and Routing
+  const navigate = useNavigate();
+  const { 
+    generateCompleteJourney, 
+    generateAdaptiveAssessment, 
+    getPersonalizedRecommendations 
+  } = useAIAgent();
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -104,7 +156,14 @@ export const AIMentorPage: React.FC = () => {
       case 'Brain Computer Interface': return "Hello! 👋 I'm your Neuroscience Researcher specializing in BCI. Want to discuss EEG signals, neural decoding, or the future of brain-machine tech?";
       case 'MLOps': return "Welcome! 👋 I'm your Head of MLOps. Let's design some robust machine learning production pipelines, set up CI/CD for models, or discuss model monitoring. Where should we start?";
       case 'Robotic Process Automation (RPA)': return "Hi there! 👋 I'm your RPA Architect. Let's automate those repetitive workflows and optimize your business processes. What are we automating today?";
-      default: return `Hi there! 🎓 I'm your AI Study Assistant, ready to help you master ${topic}. Let's dive into some concepts! What would you like to explore today?`;
+      default: return `Hi there! 🎓 I'm your AI Study Assistant.
+      
+💡 **Pro Tip**: I'm not just a chat bot! Try typing:
+- *"Create a course on React"*
+- *"Test me on Python"*
+- *"Give me a roadmap for ML"*
+
+What would you like to explore today?`;
     }
   };
 
@@ -146,8 +205,43 @@ export const AIMentorPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Get AI response
-      const response: AIResponse = await aiMentorService.ask(textToSend, selectedTopic);
+      // 1. Parse intent first
+      const intentResult = parseUserIntent(textToSend);
+
+      // 2. Augment the message with hidden Agentic Directives if needed
+      let apiMessage = textToSend;
+
+      if (intentResult.type === "GENERATE_COURSE" && intentResult.topic) {
+        apiMessage = textToSend + `\n\n[SYSTEM DIRECTIVE]: The user wants a course/learning journey on ${intentResult.topic}. Act as an interactive tutor right here in the chat. DO NOT output a massive syllabus. Instead, introduce the topic, teach the first core concept (Module 1), and then STOP. Ask if they understand before moving to the next concept. Keep responses highly concise and interactive.`;
+        
+        // Fire & Forget: Tell the backend to build and save the syllabus in the background
+        generateCompleteJourney(intentResult.topic).catch(err => console.error("Background course generation failed:", err));
+        
+        // Let the user know the system is syncing
+        setMessages(prev => [...prev, {
+          id: 'sync-' + Date.now(),
+          content: `☁️ I'm teaching you here while syncing this entire course to your **AI Learning Hub** in the background!`,
+          isUser: false,
+          timestamp: new Date()
+        }]);
+
+      } else if (intentResult.type === "GENERATE_ASSESSMENT" && intentResult.topic) {
+        apiMessage = textToSend + `\n\n[SYSTEM DIRECTIVE]: The user wants to take an assessment/test on ${intentResult.topic}. Act as an interactive examiner. STRICT RULE: Ask exactly ONE question right now. STOP and await the user's answer. When they answer, evaluate it, explain briefly, and then ask the next question. Do not provide all questions at once.`;
+        
+        // Fire & Forget: Tell the backend to build an assessment in the background
+        generateAdaptiveAssessment(intentResult.topic).catch(err => console.error("Background assessment generation failed:", err));
+        
+        // UI notification
+        setMessages(prev => [...prev, {
+          id: 'sync-' + Date.now(),
+          content: `☁️ Preparing your test structure in the **AI Learning Hub**... let's begin right here!`,
+          isUser: false,
+          timestamp: new Date()
+        }]);
+      }
+
+      // 3. Send augmented message to the AI
+      const response: AIResponse = await aiMentorService.ask(apiMessage, selectedTopic);
 
       // Create AI message
       const aiMessage: ChatMessage = {

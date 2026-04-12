@@ -97,3 +97,7 @@ async def generate_assessment(request: AssessmentRequest):
             "success": True,
             "assessment": fallback_assessment
         }
+        return {
+            "success": True,
+            "assessment": fallback_assessment
+        }

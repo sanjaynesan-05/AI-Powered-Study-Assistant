@@ -5,14 +5,14 @@ import { advancedAILearningService, LearningObjective, EnhancedTopic } from '../
 import { youtubeService, YouTubeVideo } from '../services/youtubeService';
 import { enhancedLearningPathService, EnhancedLearningPath } from '../services/enhancedLearningPathService';
 import StepByStepLearningPath from '../components/StepByStepLearningPath';
-import { 
-  Brain, 
-  BookOpen, 
-  Target, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Lightbulb, 
+import {
+  Brain,
+  BookOpen,
+  Target,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Lightbulb,
   TrendingUp,
   Play,
   RotateCcw,
@@ -52,7 +52,7 @@ const AILearningHub: React.FC = () => {
   // Form states
   const [selectedSkill, setSelectedSkill] = useState('');
   const [skillInput, setSkillInput] = useState('');
-  
+
   // Enhanced learning path states
   const [enhancedLearningPath, setEnhancedLearningPath] = useState<EnhancedLearningPath | null>(null);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
@@ -77,7 +77,7 @@ const AILearningHub: React.FC = () => {
   const [activeTab, setActiveTab] = useState('generate');
   const [skillGapResults, setSkillGapResults] = useState<any>(null);
   const [showLearningResources, setShowLearningResources] = useState(false);
-  
+
   // Enhanced Learning Path states
   const [selectedPath, setSelectedPath] = useState<any>(null);
   const [pathTopics, setPathTopics] = useState<any[]>([]);
@@ -185,10 +185,10 @@ const AILearningHub: React.FC = () => {
 
   // Get supported skills from enhanced learning path service
   const popularSkills = enhancedLearningPathService.getSupportedSkills();
-  
+
   // Additional skills that don't have enhanced paths yet
   const additionalSkills = [
-    'DevOps', 'Digital Marketing', 'UI/UX Design', 
+    'DevOps', 'Digital Marketing', 'UI/UX Design',
     'Cloud Computing', 'Cybersecurity', 'Blockchain'
   ];
 
@@ -198,62 +198,104 @@ const AILearningHub: React.FC = () => {
     }
   }, [user]);
 
-  // Convert AI-generated paths to enhanced format
+  // Convert AI-generated paths to enhanced format asynchronously using Youtube API
   useEffect(() => {
-    if (learningPaths.length > 0) {
-      const convertedPaths = learningPaths.map((path: any, index: number) => ({
-        id: `ai-${index + 1}`,
-        title: path.title || 'AI Generated Path',
-        description: path.description || 'AI-powered learning journey',
-        progress: 0,
-        totalTopics: path.modules?.length || 5,
-        completedTopics: 0,
-        difficulty: path.difficultyLevel || 'intermediate',
-        category: path.skillArea || 'General',
-        estimatedDuration: path.estimatedDuration || '6-8 weeks',
-        rating: 4.7,
-        topics: path.modules?.map((module: any, moduleIndex: number) => ({
-          id: `t${moduleIndex + 1}`,
-          name: module.title || module.name || `Topic ${moduleIndex + 1}`,
-          completed: false,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          articleUrl: 'https://developer.mozilla.org/en-US/docs/Web',
-          estimatedTime: module.estimatedHours ? `${module.estimatedHours} hours` : '2 hours'
-        })) || [
-          {
-            id: 't1',
-            name: 'Introduction',
-            completed: false,
-            hasVideo: true,
-            hasArticle: true,
-            videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            articleUrl: 'https://developer.mozilla.org/en-US/docs/Web',
-            estimatedTime: '1 hour'
-          }
-        ]
-      }));
-      
-      // Add converted paths to enhanced paths (avoid duplicates)
+    const processAIPaths = async () => {
+      if (learningPaths.length === 0) return;
+
+      const newConvertedPaths = await Promise.all(
+        learningPaths.map(async (path: any, index: number) => {
+
+          // Hydrate modules with real YouTube videos via API
+          const hydratedTopics = await Promise.all(
+            (path.modules || []).map(async (module: any, moduleIndex: number) => {
+              const moduleName = module.title || module.name || `Concept ${moduleIndex + 1}`;
+              const textQuery = encodeURIComponent(`${path.title || path.skillArea} ${moduleName} documentation`);
+
+              let finalVideoUrl = module.videoUrl;
+
+              // Only search if we don't already have an explicit youtube watch link
+              if (!finalVideoUrl || !finalVideoUrl.includes('watch?v=')) {
+                try {
+                  const searchResults = await youtubeService.searchEducationalVideos({
+                    query: `${path.title || path.skillArea} ${moduleName}`,
+                    maxResults: 1
+                  });
+
+                  if (searchResults && searchResults.length > 0) {
+                    finalVideoUrl = searchResults[0].videoUrl;
+                  } else {
+                    finalVideoUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${path.title || path.skillArea} ${moduleName} tutorial`)}`;
+                  };
+                } catch (err) {
+                  finalVideoUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${path.title || path.skillArea} ${moduleName} tutorial`)}`;
+                }
+              }
+
+              return {
+                id: `t${moduleIndex + 1}`,
+                name: `Module ${moduleIndex + 1}: ${moduleName}`,
+                completed: false,
+                hasVideo: true,
+                hasArticle: true,
+                videoUrl: finalVideoUrl,
+                articleUrl: module.articleUrl || `https://www.google.com/search?q=${textQuery}`,
+                estimatedTime: module.estimatedHours ? `${module.estimatedHours} hours` : '2 hours'
+              };
+            })
+          );
+
+          // Provide fallback module if nothing returned
+          const finalTopics = hydratedTopics.length > 0 ? hydratedTopics : [
+            {
+              id: 't1',
+              name: 'Module 1: Introduction',
+              completed: false,
+              hasVideo: true,
+              hasArticle: true,
+              videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent((path.title || 'Course') + ' introduction tutorial')}`,
+              articleUrl: `https://www.google.com/search?q=${encodeURIComponent((path.title || 'Course') + ' documentation')}`,
+              estimatedTime: '1 hour'
+            }
+          ];
+
+          return {
+            id: `ai-${path.id || index + Date.now()}`,
+            title: path.title || 'AI Generated Path',
+            description: path.description || 'AI-powered learning journey',
+            progress: 0,
+            totalTopics: finalTopics.length,
+            completedTopics: 0,
+            difficulty: path.difficultyLevel || 'intermediate',
+            category: path.skillArea || 'General',
+            estimatedDuration: path.estimatedDuration || '6-8 weeks',
+            rating: 4.7,
+            topics: finalTopics
+          };
+        })
+      );
+
+      // Add hydrated paths to state
       setEnhancedPaths(prev => {
-        const existingIds = prev.map(p => p.id);
-        const newPaths = convertedPaths.filter((path: any) => !existingIds.includes(path.id));
+        const existingTitles = prev.map(p => p.title);
+        const newPaths = newConvertedPaths.filter((path: any) => !existingTitles.includes(path.title));
         return [...prev, ...newPaths];
       });
-    }
+    };
+
+    processAIPaths();
   }, [learningPaths]);
 
   const handleGenerateJourney = async () => {
     if (!selectedSkill && !skillInput) return;
-    
+
     const targetSkill = selectedSkill || skillInput;
-    
+
     // Check if skill is supported for enhanced learning path
     if (enhancedLearningPathService.isSkillSupported(targetSkill)) {
       // Show level selection modal or use default 'Beginner'
-      const level = difficulty === 'beginner' ? 'Beginner' : 
-                   difficulty === 'intermediate' ? 'Intermediate' : 'Advanced';
+      const level = difficulty === 'beginner' ? 'Beginner' :
+        difficulty === 'intermediate' ? 'Intermediate' : 'Advanced';
       await generateEnhancedPath(targetSkill, level);
     } else {
       // Fallback to regular AI journey generation
@@ -266,17 +308,17 @@ const AILearningHub: React.FC = () => {
 
   const handleGenerateLearningPath = async () => {
     if (!selectedSkill && !skillInput) return;
-    
+
     const targetSkill = selectedSkill || skillInput;
     await generateLearningPath(targetSkill, difficulty, preferences);
   };
 
   const handleGenerateAssessment = async () => {
     if (!selectedSkill && !skillInput) return;
-    
+
     const skillArea = selectedSkill || skillInput;
     const assessment = await generateAssessment(skillArea, difficulty, 20);
-    
+
     if (assessment) {
       setCurrentAssessment(assessment);
       setCurrentQuestion(0);
@@ -301,7 +343,7 @@ const AILearningHub: React.FC = () => {
   const finishAssessment = async (answers: number[]) => {
     const timeSpent = Math.round((Date.now() - assessmentStartTime) / 1000 / 60); // minutes
     const results = await analyzeAssessmentResults(answers, currentAssessment, timeSpent);
-    
+
     if (results) {
       setAssessmentResults(results);
       setShowResults(true);
@@ -310,7 +352,7 @@ const AILearningHub: React.FC = () => {
 
   const handleSkillGapAnalysis = async () => {
     if (!preferences.careerGoals) return;
-    
+
     const results = await getSkillGapAnalysis(preferences.careerGoals);
     setSkillGapResults(results);
   };
@@ -381,14 +423,14 @@ const AILearningHub: React.FC = () => {
         );
         const completedCount = updatedTopics.filter((t: any) => t.completed).length;
         const progress = Math.round((completedCount / updatedTopics.length) * 100);
-        
+
         const updatedPath = {
           ...path,
           topics: updatedTopics,
           completedTopics: completedCount,
           progress: progress
         };
-        
+
         setSelectedPath(updatedPath);
         setPathTopics(updatedTopics);
         return updatedPath;
@@ -410,7 +452,7 @@ const AILearningHub: React.FC = () => {
       'Cybersecurity': 'https://roadmap.sh/pdfs/roadmaps/cyber-security.pdf',
       'Fullstack Development': 'https://roadmap.sh/pdfs/roadmaps/full-stack.pdf'
     };
-    
+
     const roadmapUrl = roadmaps[category];
     if (roadmapUrl) {
       window.open(roadmapUrl, '_blank');
@@ -420,9 +462,9 @@ const AILearningHub: React.FC = () => {
   // Enhanced AI-powered learning path generation
   const handleGenerateEnhancedJourney = async () => {
     if (!selectedSkill && !skillInput) return;
-    
+
     const targetSkill = selectedSkill || skillInput;
-    
+
     const objective: LearningObjective = {
       skill: targetSkill,
       currentLevel: difficulty as 'beginner' | 'intermediate' | 'advanced',
@@ -434,7 +476,7 @@ const AILearningHub: React.FC = () => {
 
     try {
       const enhancedTopics = await advancedAILearningService.generateIntelligentLearningPath(objective);
-      
+
       // Add to enhanced paths
       const newPath = {
         id: `enhanced-${Date.now()}`,
@@ -461,7 +503,7 @@ const AILearningHub: React.FC = () => {
           assessmentQuestions: topic.assessmentQuestions
         }))
       };
-      
+
       setEnhancedPaths(prev => [newPath, ...prev]);
       setActiveTab('paths'); // Switch to paths tab to show the new path
     } catch (error) {
@@ -479,16 +521,16 @@ const AILearningHub: React.FC = () => {
         maxResults: 3,
         duration: 'medium'
       });
-      
+
       if (videos.length > 0) {
         // Update the current topic with real YouTube videos
-        const updatedTopics = pathTopics.map(topic => 
-          topic.name === topicName 
+        const updatedTopics = pathTopics.map(topic =>
+          topic.name === topicName
             ? { ...topic, videos: videos, hasVideo: true, videoUrl: videos[0].videoUrl }
             : topic
         );
         setPathTopics(updatedTopics);
-        
+
         // Open the first video
         handleOpenResource(videos[0].videoUrl);
       }
@@ -543,7 +585,7 @@ const AILearningHub: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <StepByStepLearningPath
           learningPath={enhancedLearningPath}
           onStepComplete={handleStepComplete}
@@ -562,7 +604,7 @@ const AILearningHub: React.FC = () => {
           <h1 className="text-4xl font-bold">AI Learning Hub</h1>
         </div>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Harness the power of AI to create personalized learning journeys, take skill assessments, 
+          Harness the power of AI to create personalized learning journeys, take skill assessments,
           and get intelligent recommendations for your career growth.
         </p>
       </div>
@@ -579,11 +621,10 @@ const AILearningHub: React.FC = () => {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                activeTab === id 
-                  ? 'bg-white shadow-sm text-blue-600' 
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${activeTab === id
+                ? 'bg-white shadow-sm text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               <Icon className="h-4 w-4" />
               <span>{label}</span>
@@ -605,7 +646,7 @@ const AILearningHub: React.FC = () => {
             {/* Skill Selection */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">What do you want to learn?</h3>
-              
+
               {/* Popular Skills */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -623,11 +664,10 @@ const AILearningHub: React.FC = () => {
                         setSelectedSkill(selectedSkill === skill ? '' : skill);
                         setSkillInput('');
                       }}
-                      className={`relative px-3 py-1 rounded-full text-sm border transition-colors ${
-                        selectedSkill === skill
-                          ? 'bg-blue-100 border-blue-300 text-blue-700'
-                          : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      className={`relative px-3 py-1 rounded-full text-sm border transition-colors ${selectedSkill === skill
+                        ? 'bg-blue-100 border-blue-300 text-blue-700'
+                        : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
+                        }`}
                     >
                       {skill}
                       {enhancedLearningPathService.isSkillSupported(skill) && (
@@ -642,11 +682,10 @@ const AILearningHub: React.FC = () => {
                         setSelectedSkill(selectedSkill === skill ? '' : skill);
                         setSkillInput('');
                       }}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                        selectedSkill === skill
-                          ? 'bg-blue-100 border-blue-300 text-blue-700'
-                          : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${selectedSkill === skill
+                        ? 'bg-blue-100 border-blue-300 text-blue-700'
+                        : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
+                        }`}
                     >
                       {skill}
                     </button>
@@ -734,14 +773,13 @@ const AILearningHub: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-4">
-              <button 
+              <button
                 onClick={handleGenerateEnhancedJourney}
                 disabled={isGenerating || (!selectedSkill && !skillInput)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${
-                  isGenerating || (!selectedSkill && !skillInput)
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
-                }`}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${isGenerating || (!selectedSkill && !skillInput)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+                  }`}
               >
                 {isGenerating ? (
                   <>
@@ -765,16 +803,15 @@ const AILearningHub: React.FC = () => {
                 )}
               </button>
 
-              <button 
+              <button
                 onClick={handleGenerateJourney}
                 disabled={isGenerating || loadingEnhancedPath || (!selectedSkill && !skillInput)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${
-                  isGenerating || loadingEnhancedPath || (!selectedSkill && !skillInput)
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : enhancedLearningPathService.isSkillSupported(selectedSkill || skillInput)
+                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${isGenerating || loadingEnhancedPath || (!selectedSkill && !skillInput)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : enhancedLearningPathService.isSkillSupported(selectedSkill || skillInput)
                     ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
+                  }`}
               >
                 {isGenerating || loadingEnhancedPath ? (
                   <>
@@ -791,27 +828,25 @@ const AILearningHub: React.FC = () => {
                 )}
               </button>
 
-              <button 
+              <button
                 onClick={handleGenerateLearningPath}
                 disabled={isGenerating || (!selectedSkill && !skillInput)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium border transition-colors ${
-                  isGenerating || (!selectedSkill && !skillInput)
-                    ? 'border-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium border transition-colors ${isGenerating || (!selectedSkill && !skillInput)
+                  ? 'border-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <BookOpen className="h-4 w-4" />
                 <span>Generate Learning Path Only</span>
               </button>
 
-              <button 
+              <button
                 onClick={handleGenerateAssessment}
                 disabled={isGenerating || (!selectedSkill && !skillInput)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium border transition-colors ${
-                  isGenerating || (!selectedSkill && !skillInput)
-                    ? 'border-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium border transition-colors ${isGenerating || (!selectedSkill && !skillInput)
+                  ? 'border-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <Award className="h-4 w-4" />
                 <span>Create Assessment</span>
@@ -822,7 +857,7 @@ const AILearningHub: React.FC = () => {
             {currentJourney && (
               <div className="mt-8 space-y-6">
                 <h3 className="text-xl font-semibold">Your AI-Generated Learning Journey</h3>
-                
+
                 {currentJourney.learningPath && (
                   <div className="bg-white rounded-lg border shadow-sm">
                     <div className="border-b px-6 py-4">
@@ -840,7 +875,7 @@ const AILearningHub: React.FC = () => {
                           <span className="text-sm">Difficulty: {currentJourney.learningPath.difficultyLevel}</span>
                         </div>
                       </div>
-                      
+
                       {/* Modules */}
                       {currentJourney.learningPath.modules && (
                         <div className="space-y-2">
@@ -880,11 +915,10 @@ const AILearningHub: React.FC = () => {
                           <div key={index} className="border-l-4 border-blue-500 pl-4">
                             <h4 className="font-semibold">{rec.title}</h4>
                             <p className="text-gray-600 text-sm">{rec.description}</p>
-                            <span className={`inline-block px-2 py-1 mt-1 text-xs rounded ${
-                              rec.priority === 'high' ? 'bg-red-100 text-red-700' :
+                            <span className={`inline-block px-2 py-1 mt-1 text-xs rounded ${rec.priority === 'high' ? 'bg-red-100 text-red-700' :
                               rec.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
+                                'bg-gray-100 text-gray-700'
+                              }`}>
                               {rec.priority} Priority
                             </span>
                           </div>
@@ -914,7 +948,7 @@ const AILearningHub: React.FC = () => {
                 <p className="text-gray-600 mb-6">
                   Take an AI-generated assessment to evaluate your skills and get personalized feedback.
                 </p>
-                
+
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -940,15 +974,14 @@ const AILearningHub: React.FC = () => {
                       </select>
                     </div>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={handleGenerateAssessment}
                     disabled={isGenerating || !skillInput}
-                    className={`w-full flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${
-                      isGenerating || !skillInput
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
+                    className={`w-full flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${isGenerating || !skillInput
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
                   >
                     {isGenerating ? (
                       <>
@@ -978,7 +1011,7 @@ const AILearningHub: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-2 bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-blue-600 h-2 rounded-full transition-all"
                     style={{ width: `${((currentQuestion + 1) / currentAssessment.questions.length) * 100}%` }}
                   />
@@ -991,7 +1024,7 @@ const AILearningHub: React.FC = () => {
                       <h3 className="text-lg font-semibold mb-4">
                         {currentAssessment.questions[currentQuestion].question}
                       </h3>
-                      
+
                       <div className="space-y-3">
                         {currentAssessment.questions[currentQuestion].options.map((option: string, index: number) => (
                           <button
@@ -1005,24 +1038,23 @@ const AILearningHub: React.FC = () => {
                         ))}
                       </div>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <button
                         onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
                         disabled={currentQuestion === 0}
-                        className={`px-4 py-2 rounded text-sm ${
-                          currentQuestion === 0
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`px-4 py-2 rounded text-sm ${currentQuestion === 0
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         Previous
                       </button>
-                      
+
                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
                         {currentAssessment.questions[currentQuestion].difficulty}
                       </span>
-                      
+
                       <button
                         onClick={() => {
                           if (currentQuestion < currentAssessment.questions.length - 1) {
@@ -1030,11 +1062,10 @@ const AILearningHub: React.FC = () => {
                           }
                         }}
                         disabled={currentQuestion === currentAssessment.questions.length - 1}
-                        className={`px-4 py-2 rounded text-sm ${
-                          currentQuestion === currentAssessment.questions.length - 1
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`px-4 py-2 rounded text-sm ${currentQuestion === currentAssessment.questions.length - 1
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         Skip
                       </button>
@@ -1062,11 +1093,10 @@ const AILearningHub: React.FC = () => {
                   <p className="text-lg text-gray-600">
                     {assessmentResults.performance}
                   </p>
-                  <span className={`inline-block px-3 py-1 rounded text-sm ${
-                    assessmentResults.passed 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-red-100 text-red-700'
-                  }`}>
+                  <span className={`inline-block px-3 py-1 rounded text-sm ${assessmentResults.passed
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-700'
+                    }`}>
                     {assessmentResults.passed ? 'Passed' : 'Need Improvement'}
                   </span>
                 </div>
@@ -1093,14 +1123,14 @@ const AILearningHub: React.FC = () => {
                 )}
 
                 <div className="flex space-x-4">
-                  <button 
+                  <button
                     onClick={resetAssessment}
                     className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
                     <RotateCcw className="h-4 w-4" />
                     <span>Take Another Assessment</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       const skill = currentAssessment.skillArea;
                       resetAssessment();
@@ -1134,8 +1164,8 @@ const AILearningHub: React.FC = () => {
                 <div className="text-center py-8">
                   <Lightbulb className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">No recommendations yet. Complete your profile to get personalized suggestions.</p>
-                  <button 
-                    onClick={getPersonalizedRecommendations} 
+                  <button
+                    onClick={getPersonalizedRecommendations}
                     disabled={isGenerating}
                     className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
@@ -1162,11 +1192,10 @@ const AILearningHub: React.FC = () => {
                           )}
                         </div>
                         <div className="flex flex-col items-end space-y-2">
-                          <span className={`px-2 py-1 text-xs rounded ${
-                            rec.priority === 'high' ? 'bg-red-100 text-red-700' :
-                            rec.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 
-                            'bg-gray-100 text-gray-700'
-                          }`}>
+                          <span className={`px-2 py-1 text-xs rounded ${rec.priority === 'high' ? 'bg-red-100 text-red-700' :
+                            rec.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
                             {rec.priority} Priority
                           </span>
                           <div className="text-xs text-gray-500">
@@ -1193,14 +1222,13 @@ const AILearningHub: React.FC = () => {
                     }))}
                     className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                   />
-                  <button 
+                  <button
                     onClick={handleSkillGapAnalysis}
                     disabled={isGenerating || !preferences.careerGoals}
-                    className={`px-4 py-2 rounded-md font-medium ${
-                      isGenerating || !preferences.careerGoals
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
+                    className={`px-4 py-2 rounded-md font-medium ${isGenerating || !preferences.careerGoals
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
                   >
                     {isGenerating ? 'Analyzing...' : 'Analyze Gaps'}
                   </button>
@@ -1214,8 +1242,8 @@ const AILearningHub: React.FC = () => {
                         <h5 className="font-medium text-red-600">Skills to Develop:</h5>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {skillGapResults.missingSkills.map((skill: string, index: number) => (
-                            <span 
-                              key={index} 
+                            <span
+                              key={index}
                               className="px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded text-sm"
                             >
                               {skill}
@@ -1224,7 +1252,7 @@ const AILearningHub: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {skillGapResults.recommendations && (
                       <div>
                         <h5 className="font-medium">Next Steps:</h5>
@@ -1253,7 +1281,7 @@ const AILearningHub: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 {showDetailedPath && (
-                  <button 
+                  <button
                     onClick={handleBackToOverview}
                     className="flex items-center justify-center p-2 mr-2 text-gray-600 transition-colors rounded-full hover:bg-gray-100"
                   >
@@ -1267,7 +1295,7 @@ const AILearningHub: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="p-6">
             {!showDetailedPath ? (
               // Learning Paths Overview
@@ -1275,8 +1303,8 @@ const AILearningHub: React.FC = () => {
                 <div className="text-center py-8">
                   <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">No learning paths yet. Generate your first AI-powered learning journey!</p>
-                  <button 
-                    onClick={() => setActiveTab('generate')} 
+                  <button
+                    onClick={() => setActiveTab('generate')}
                     className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
                     Create Learning Path
@@ -1291,7 +1319,7 @@ const AILearningHub: React.FC = () => {
                     >
                       {/* Shining effect */}
                       <div className="absolute inset-0 transition-transform duration-1000 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full" />
-                      
+
                       <div className="relative z-10 p-5 flex flex-col flex-1">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 pr-2">
@@ -1303,7 +1331,7 @@ const AILearningHub: React.FC = () => {
                             </span>
                           </div>
                           <div className="flex items-center space-x-2 flex-shrink-0">
-                            <button 
+                            <button
                               onClick={() => handleGoToRoadmap(path.id, path.category)}
                               className="flex items-center justify-center w-8 h-8 transition-colors duration-300 rounded-full bg-blue-50 hover:bg-blue-100"
                               title="View Roadmap"
@@ -1328,7 +1356,7 @@ const AILearningHub: React.FC = () => {
                             <span className="text-sm font-medium text-blue-600">{path.progress}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
+                            <div
                               className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-700 ease-out"
                               style={{ width: `${path.progress}%` }}
                             />
@@ -1377,7 +1405,7 @@ const AILearningHub: React.FC = () => {
                         </div>
                         <div className="text-xs text-gray-600 mb-2">Completed</div>
                         <div className="w-full h-2 bg-gray-200 rounded-full">
-                          <div 
+                          <div
                             className="h-2 transition-all duration-700 ease-out rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
                             style={{ width: `${selectedPath?.progress}%` }}
                           />
@@ -1395,11 +1423,10 @@ const AILearningHub: React.FC = () => {
                   {/* Mobile View */}
                   <div className="block lg:hidden">
                     {pathTopics.map((topic, index) => (
-                      <div 
+                      <div
                         key={topic.id}
-                        className={`p-4 border-b border-gray-200 last:border-b-0 ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        }`}
+                        className={`p-4 border-b border-gray-200 last:border-b-0 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          }`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
@@ -1411,11 +1438,10 @@ const AILearningHub: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleToggleTopicComplete(topic.id)}
-                            className={`w-5 h-5 flex items-center justify-center rounded transition-all duration-300 ml-2 ${
-                              topic.completed 
-                                ? 'bg-green-500 text-white'
-                                : 'border border-gray-300 text-gray-400'
-                            }`}
+                            className={`w-5 h-5 flex items-center justify-center rounded transition-all duration-300 ml-2 ${topic.completed
+                              ? 'bg-green-500 text-white'
+                              : 'border border-gray-300 text-gray-400'
+                              }`}
                           >
                             {topic.completed && <CheckCircle className="w-3 h-3" />}
                           </button>
@@ -1474,11 +1500,10 @@ const AILearningHub: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {pathTopics.map((topic, index) => (
-                          <tr 
-                            key={topic.id} 
-                            className={`${
-                              index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                            } hover:bg-blue-50 transition-colors duration-150`}
+                          <tr
+                            key={topic.id}
+                            className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                              } hover:bg-blue-50 transition-colors duration-150`}
                           >
                             <td className="px-6 py-4">
                               <div className="text-sm font-medium text-gray-900">{topic.name}</div>
@@ -1523,11 +1548,10 @@ const AILearningHub: React.FC = () => {
                             <td className="px-6 py-4">
                               <button
                                 onClick={() => handleToggleTopicComplete(topic.id)}
-                                className={`w-6 h-6 flex items-center justify-center rounded-md transition-all duration-300 ${
-                                  topic.completed 
-                                    ? 'bg-green-500 text-white hover:bg-green-600'
-                                    : 'border border-gray-300 text-gray-400 hover:border-gray-400'
-                                }`}
+                                className={`w-6 h-6 flex items-center justify-center rounded-md transition-all duration-300 ${topic.completed
+                                  ? 'bg-green-500 text-white hover:bg-green-600'
+                                  : 'border border-gray-300 text-gray-400 hover:border-gray-400'
+                                  }`}
                               >
                                 {topic.completed && <CheckCircle className="w-4 h-4" />}
                               </button>
@@ -1585,7 +1609,7 @@ const AILearningHub: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* Action Button */}
                       <div className="ml-4">
                         <a
@@ -1619,8 +1643,8 @@ const AILearningHub: React.FC = () => {
           <div className="p-6 text-center">
             <p className="text-gray-600">
               🚀 {activeTab === 'assessment' ? 'AI Skill Assessment' :
-                   activeTab === 'recommendations' ? 'AI Recommendations' :
-                   'My Learning Paths'} feature coming soon!
+                activeTab === 'recommendations' ? 'AI Recommendations' :
+                  'My Learning Paths'} feature coming soon!
             </p>
             <p className="text-sm text-gray-500 mt-2">
               The AI agent system is ready - frontend implementation in progress.
