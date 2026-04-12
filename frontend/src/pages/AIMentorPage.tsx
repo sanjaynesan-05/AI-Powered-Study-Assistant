@@ -68,7 +68,7 @@ export const AIMentorPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState('General');
+  const [selectedTopic, setSelectedTopic] = useState<string>('General Conversation');
   const [availableTopics, setAvailableTopics] = useState<StudyTopic[]>([]);
   const [isServiceHealthy, setIsServiceHealthy] = useState(true);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
@@ -148,6 +148,7 @@ export const AIMentorPage: React.FC = () => {
    */
   const getWelcomeMessageForTopic = (topic: string): string => {
     switch (topic) {
+      case 'General Conversation': return "Hi there! 👋 I'm your versatile AI Assistant. We can chat about anything—from broad ideas, philosophy, and history to casual everyday questions. What's on your mind?";
       case 'Mental Wellness': return "Hi there! 👋 I'm your Academic Wellness Coach. I'm here to support your mental health, help you manage academic stress, and build healthy habits. How are you feeling today?";
       case 'Career Guidance': return "Hello! 👋 I'm your Tech Career Strategist. Ready to plan your roadmap, build an outstanding resume, or prepare for that big interview? What are your career goals?";
       case 'GenAI': return "Welcome! 👋 I'm your GenAI Architect. Whether you want to understand LLMs, build RAG pipelines, or master prompt engineering, I'm here to help. What shall we explore?";
@@ -210,9 +211,18 @@ What would you like to explore today?`;
 
       // 2. Augment the message with hidden Agentic Directives if needed
       let apiMessage = textToSend;
+      
+      // Inject conversational memory (short-term rolling window of exactly the last 6 messages)
+      const meaningfulMessages = messages.filter(m => !m.content.includes("☁️")); // Filter out sync alerts
+      if (meaningfulMessages.length > 1) {
+        const recentHistory = meaningfulMessages.slice(-6)
+          .map(m => `${m.isUser ? 'User' : 'AI'}: ${m.content}`)
+          .join('\n\n');
+        apiMessage = `[Previous Short-Term Chat Context:]\n${recentHistory}\n[End Context]\n\nNow respond to the User's latest prompt below:\n\n${textToSend}`;
+      }
 
       if (intentResult.type === "GENERATE_COURSE" && intentResult.topic) {
-        apiMessage = textToSend + `\n\n[SYSTEM DIRECTIVE]: The user wants a course/learning journey on ${intentResult.topic}. Act as an interactive tutor right here in the chat. DO NOT output a massive syllabus. Instead, introduce the topic, teach the first core concept (Module 1), and then STOP. Ask if they understand before moving to the next concept. Keep responses highly concise and interactive.`;
+        apiMessage = apiMessage + `\n\n[SYSTEM DIRECTIVE]: The user wants a course/learning journey on ${intentResult.topic}. Act as an interactive tutor right here in the chat. DO NOT output a massive syllabus. Instead, introduce the topic, teach the first core concept (Module 1), and then STOP. Ask if they understand before moving to the next concept. Keep responses highly concise and interactive.`;
         
         // Fire & Forget: Tell the backend to build and save the syllabus in the background
         generateCompleteJourney(intentResult.topic).catch(err => console.error("Background course generation failed:", err));
@@ -226,7 +236,7 @@ What would you like to explore today?`;
         }]);
 
       } else if (intentResult.type === "GENERATE_ASSESSMENT" && intentResult.topic) {
-        apiMessage = textToSend + `\n\n[SYSTEM DIRECTIVE]: The user wants to take an assessment/test on ${intentResult.topic}. Act as an interactive examiner. STRICT RULE: Ask exactly ONE question right now. STOP and await the user's answer. When they answer, evaluate it, explain briefly, and then ask the next question. Do not provide all questions at once.`;
+        apiMessage = apiMessage + `\n\n[SYSTEM DIRECTIVE]: The user wants to take an assessment/test on ${intentResult.topic}. Act as an interactive examiner. STRICT RULE: Ask exactly ONE question right now. STOP and await the user's answer. When they answer, evaluate it, explain briefly, and then ask the next question. Do not provide all questions at once.`;
         
         // Fire & Forget: Tell the backend to build an assessment in the background
         generateAdaptiveAssessment(intentResult.topic).catch(err => console.error("Background assessment generation failed:", err));
@@ -329,9 +339,6 @@ What would you like to explore today?`;
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-lg sm:text-2xl font-bold truncate">AI Study Assistant</h1>
-              <p className="text-blue-100 text-sm sm:text-base hidden sm:block">
-                Your personal learning companion powered by Gemini AI
-              </p>
             </div>
           </div>
           

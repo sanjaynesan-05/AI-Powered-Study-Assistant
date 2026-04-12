@@ -303,6 +303,7 @@ const AILearningHub: React.FC = () => {
       // Also fetch learning resources using Gemini AI
       await getSmartResources(targetSkill, difficulty);
       setShowLearningResources(true);
+      setActiveTab('paths'); // Immediately redirect the user so they can clearly see the saved course
     }
   };
 
@@ -371,6 +372,16 @@ const AILearningHub: React.FC = () => {
     try {
       const path = await enhancedLearningPathService.generateEnhancedLearningPath(skill, level);
       setEnhancedLearningPath(path);
+      
+      // Store the path into the "My Paths" collection so it doesn't vanish
+      setEnhancedPaths(prev => {
+        // Prevent storing direct duplicates
+        if (!prev.find(p => p.title === path.title)) {
+          return [path, ...prev];
+        }
+        return prev;
+      });
+      
       setShowEnhancedPath(true);
       setCompletedSteps([]); // Reset completed steps
     } catch (error) {
@@ -604,8 +615,7 @@ const AILearningHub: React.FC = () => {
           <h1 className="text-4xl font-bold">AI Learning Hub</h1>
         </div>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Harness the power of AI to create personalized learning journeys, take skill assessments,
-          and get intelligent recommendations for your career growth.
+          Harness the power of AI to create personalized, rich learning journeys and dynamic modules.
         </p>
       </div>
 
@@ -614,8 +624,6 @@ const AILearningHub: React.FC = () => {
         <div className="bg-gray-100 rounded-lg p-1 flex space-x-1">
           {[
             { id: 'generate', label: 'Generate Journey', icon: Target },
-            { id: 'assessment', label: 'Skill Assessment', icon: Award },
-            { id: 'recommendations', label: 'Recommendations', icon: Lightbulb },
             { id: 'paths', label: 'My Paths', icon: BookOpen }
           ].map(({ id, label, icon: Icon }) => (
             <button

@@ -141,6 +141,7 @@ class AIService {
     try {
       // Return predefined topics since Python backend doesn't have topic list
       const defaultTopics: StudyTopic[] = [
+        { id: 'general-conversation', name: 'General Conversation', description: 'Open-ended, casual or highly flexible AI discussions' },
         { id: 'mental-wellness', name: 'Mental Wellness', description: 'Tips and guidance for student mental health' },
         { id: 'career-guidance', name: 'Career Guidance', description: 'Career path planning and advice' },
         { id: 'genai', name: 'GenAI', description: 'Generative AI and foundation models' },
