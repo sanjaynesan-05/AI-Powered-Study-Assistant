@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  PlayCircle, 
-  Clock, 
-  BookOpen, 
-  Code, 
-  CheckCircle, 
-  ExternalLink, 
+import {
+  PlayCircle,
+  Clock,
+  BookOpen,
+  Code,
+  CheckCircle,
+  ExternalLink,
   ChevronRight,
   Award,
   Target,
   Zap,
   Youtube
 } from 'lucide-react';
-import { 
-  EnhancedLearningPath, 
+import {
+  EnhancedLearningPath,
   EnhancedLearningStep
 } from '../services/enhancedLearningPathService';
 
@@ -50,7 +50,7 @@ const StepByStepLearningPath: React.FC<StepByStepLearningPathProps> = ({
           </div>
         </div>
         <p className="text-xl opacity-90 mb-6">{learningPath.description}</p>
-        
+
         {/* Skills & Applications */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
@@ -67,7 +67,7 @@ const StepByStepLearningPath: React.FC<StepByStepLearningPathProps> = ({
               ))}
             </ul>
           </div>
-          
+
           <div>
             <h3 className="font-semibold mb-2 flex items-center">
               <BookOpen className="w-4 h-4 mr-2" />
@@ -82,7 +82,7 @@ const StepByStepLearningPath: React.FC<StepByStepLearningPathProps> = ({
               ))}
             </ul>
           </div>
-          
+
           <div>
             <h3 className="font-semibold mb-2 flex items-center">
               <Award className="w-4 h-4 mr-2" />
@@ -129,7 +129,7 @@ const StepByStepLearningPath: React.FC<StepByStepLearningPathProps> = ({
           </span>
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-          <div 
+          <div
             className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-300"
             style={{ width: `${(completedSteps.length / learningPath.learningSteps.length) * 100}%` }}
           />
@@ -185,23 +185,21 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
   };
 
   return (
-    <div className={`border rounded-2xl transition-all duration-300 ${
-      isCompleted 
-        ? 'border-green-200 bg-green-50 dark:bg-green-900/20' 
+    <div className={`border rounded-2xl transition-all duration-300 ${isCompleted
+        ? 'border-green-200 bg-green-50 dark:bg-green-900/20'
         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-    }`}>
+      }`}>
       {/* Step Header */}
-      <div 
+      <div
         className="p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
         onClick={onToggle}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-              isCompleted
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${isCompleted
                 ? 'bg-green-500 text-white'
                 : 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
-            }`}>
+              }`}>
               {isCompleted ? <CheckCircle className="w-6 h-6" /> : stepNumber}
             </div>
             <div>
@@ -248,7 +246,7 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
               <Youtube className="w-5 h-5 mr-2 text-red-500" />
               Video Tutorial with Timestamps
             </h4>
-            
+
             {/* Main Video */}
             <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between mb-2">
@@ -273,11 +271,10 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
               {step.videoTimestamps.map((timestamp, index) => (
                 <div
                   key={index}
-                  className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                    activeTimestamp === timestamp.startTime
+                  className={`p-4 rounded-lg border cursor-pointer transition-all ${activeTimestamp === timestamp.startTime
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
+                    }`}
                   onClick={() => onTimestampClick(
                     activeTimestamp === timestamp.startTime ? null : timestamp.startTime
                   )}
@@ -303,7 +300,7 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
                     {timestamp.description}
                   </p>
-                  
+
                   {activeTimestamp === timestamp.startTime && (
                     <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded">
                       <h6 className="font-medium mb-2">Key Points:</h6>
@@ -333,13 +330,12 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
                 <div key={exercise.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h5 className="font-medium">{exercise.title}</h5>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      exercise.difficulty === 'Easy' 
+                    <span className={`px-2 py-1 rounded text-xs ${exercise.difficulty === 'Easy'
                         ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                         : exercise.difficulty === 'Medium'
-                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                    }`}>
+                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                      }`}>
                       {exercise.difficulty}
                     </span>
                   </div>
@@ -394,17 +390,16 @@ const LearningStepCard: React.FC<LearningStepCardProps> = ({
                 <QuizQuestion key={question.id} question={question} questionIndex={index} />
               ))}
             </div>
-            
+
             {/* Complete Step Button */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={onComplete}
                 disabled={isCompleted}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                  isCompleted
+                className={`px-6 py-3 rounded-lg font-medium transition-colors ${isCompleted
                     ? 'bg-green-500 text-white cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
+                  }`}
               >
                 {isCompleted ? (
                   <>
@@ -450,25 +445,23 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({ question, questionIndex }) 
             key={optionIndex}
             onClick={() => handleAnswerSelect(optionIndex)}
             disabled={showExplanation}
-            className={`w-full text-left p-3 rounded border transition-colors ${
-              selectedAnswer === optionIndex
+            className={`w-full text-left p-3 rounded border transition-colors ${selectedAnswer === optionIndex
                 ? isCorrect
                   ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                   : 'border-red-500 bg-red-50 dark:bg-red-900/20'
                 : showExplanation && optionIndex === question.correctAnswer
-                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-            }`}
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
           >
             {option}
           </button>
         ))}
       </div>
-      
+
       {showExplanation && (
-        <div className={`p-3 rounded ${
-          isCorrect ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
-        }`}>
+        <div className={`p-3 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
+          }`}>
           <div className="flex items-center mb-2">
             <CheckCircle className={`w-4 h-4 mr-2 ${isCorrect ? 'text-green-600' : 'text-red-600'}`} />
             <span className="font-medium">

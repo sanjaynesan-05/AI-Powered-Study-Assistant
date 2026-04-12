@@ -9,10 +9,10 @@ import { useAIAgent } from '../contexts/AIAgentContext';
 /**
  * Action Types representing structured multi-agent intentions
  */
-type ActionType = 
-  | "GENERATE_COURSE" 
-  | "GENERATE_ASSESSMENT" 
-  | "GET_RECOMMENDATIONS" 
+type ActionType =
+  | "GENERATE_COURSE"
+  | "GENERATE_ASSESSMENT"
+  | "GET_RECOMMENDATIONS"
   | "CHAT";
 
 /**
@@ -21,10 +21,10 @@ type ActionType =
  */
 const parseUserIntent = (message: string): { type: ActionType; topic?: string } => {
   const lowerMsg = message.toLowerCase();
-  
+
   // Learning Path / Course triggers
   const courseMatch = lowerMsg.match(/(?:create|generate|make|build) a (?:course|path|journey|roadmap) (?:on|for|about) (.*)/i) ||
-                      lowerMsg.match(/(?:teach me|i want to learn) (.*)/i);
+    lowerMsg.match(/(?:teach me|i want to learn) (.*)/i);
   if (courseMatch) {
     const topic = courseMatch[1].trim().replace(/^(how to |about )/, '');
     return { type: "GENERATE_COURSE", topic };
@@ -32,7 +32,7 @@ const parseUserIntent = (message: string): { type: ActionType; topic?: string } 
 
   // Assessment triggers
   const assessMatch = lowerMsg.match(/(?:give|create|generate) (?:an )?assessment (?:on|for) (.*)/i) ||
-                      lowerMsg.match(/(?:test me|quiz me) (?:on|for|about) (.*)/i);
+    lowerMsg.match(/(?:test me|quiz me) (?:on|for|about) (.*)/i);
   if (assessMatch) {
     const topic = assessMatch[1].trim();
     return { type: "GENERATE_ASSESSMENT", topic };
@@ -72,15 +72,15 @@ export const AIMentorPage: React.FC = () => {
   const [availableTopics, setAvailableTopics] = useState<StudyTopic[]>([]);
   const [isServiceHealthy, setIsServiceHealthy] = useState(true);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
-  
+
   // Connect to the global AI Agent Context and Routing
   const navigate = useNavigate();
-  const { 
-    generateCompleteJourney, 
-    generateAdaptiveAssessment, 
-    getPersonalizedRecommendations 
+  const {
+    generateCompleteJourney,
+    generateAdaptiveAssessment,
+    getPersonalizedRecommendations
   } = useAIAgent();
-  
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -104,12 +104,12 @@ export const AIMentorPage: React.FC = () => {
     setMessages(prev => {
       // If the only message is a welcome message, update it to match the new topic!
       if (prev.length === 1 && prev[0].id.startsWith('welcome-')) {
-         return [{
-           ...prev[0],
-           id: 'welcome-' + Date.now(),
-           content: getWelcomeMessageForTopic(selectedTopic),
-           topic: selectedTopic
-         }];
+        return [{
+          ...prev[0],
+          id: 'welcome-' + Date.now(),
+          content: getWelcomeMessageForTopic(selectedTopic),
+          topic: selectedTopic
+        }];
       }
       return prev;
     });
@@ -188,7 +188,7 @@ What would you like to explore today?`;
    */
   const sendMessage = async (messageText?: string) => {
     const textToSend = messageText || inputValue.trim();
-    
+
     if (!textToSend || isLoading) return;
 
     // Create user message
@@ -211,7 +211,7 @@ What would you like to explore today?`;
 
       // 2. Augment the message with hidden Agentic Directives if needed
       let apiMessage = textToSend;
-      
+
       // Inject conversational memory (short-term rolling window of exactly the last 6 messages)
       const meaningfulMessages = messages.filter(m => !m.content.includes("☁️")); // Filter out sync alerts
       if (meaningfulMessages.length > 1) {
@@ -223,10 +223,10 @@ What would you like to explore today?`;
 
       if (intentResult.type === "GENERATE_COURSE" && intentResult.topic) {
         apiMessage = apiMessage + `\n\n[SYSTEM DIRECTIVE]: The user wants a course/learning journey on ${intentResult.topic}. Act as an interactive tutor right here in the chat. DO NOT output a massive syllabus. Instead, introduce the topic, teach the first core concept (Module 1), and then STOP. Ask if they understand before moving to the next concept. Keep responses highly concise and interactive.`;
-        
+
         // Fire & Forget: Tell the backend to build and save the syllabus in the background
         generateCompleteJourney(intentResult.topic).catch(err => console.error("Background course generation failed:", err));
-        
+
         // Let the user know the system is syncing
         setMessages(prev => [...prev, {
           id: 'sync-' + Date.now(),
@@ -237,10 +237,10 @@ What would you like to explore today?`;
 
       } else if (intentResult.type === "GENERATE_ASSESSMENT" && intentResult.topic) {
         apiMessage = apiMessage + `\n\n[SYSTEM DIRECTIVE]: The user wants to take an assessment/test on ${intentResult.topic}. Act as an interactive examiner. STRICT RULE: Ask exactly ONE question right now. STOP and await the user's answer. When they answer, evaluate it, explain briefly, and then ask the next question. Do not provide all questions at once.`;
-        
+
         // Fire & Forget: Tell the backend to build an assessment in the background
         generateAdaptiveAssessment(intentResult.topic).catch(err => console.error("Background assessment generation failed:", err));
-        
+
         // UI notification
         setMessages(prev => [...prev, {
           id: 'sync-' + Date.now(),
@@ -322,9 +322,9 @@ What would you like to explore today?`;
    * Format timestamp for display
    */
   const formatTime = (timestamp: Date): string => {
-    return timestamp.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return timestamp.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -341,7 +341,7 @@ What would you like to explore today?`;
               <h1 className="text-lg sm:text-2xl font-bold truncate">AI Study Assistant</h1>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
             {/* Study Topic Dropdown - Compact for mobile */}
             <div className="relative">
@@ -373,14 +373,12 @@ What would you like to explore today?`;
             </button>
 
             {/* Service Status - Hidden on mobile */}
-            <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-              isServiceHealthy 
-                ? 'bg-green-500/20 text-green-100' 
+            <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-sm ${isServiceHealthy
+                ? 'bg-green-500/20 text-green-100'
                 : 'bg-red-500/20 text-red-100'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isServiceHealthy ? 'bg-green-400' : 'bg-red-400'
-              }`} />
+              }`}>
+              <div className={`w-2 h-2 rounded-full ${isServiceHealthy ? 'bg-green-400' : 'bg-red-400'
+                }`} />
               {isServiceHealthy ? 'Online' : 'Offline'}
             </div>
           </div>
@@ -408,13 +406,12 @@ What would you like to explore today?`;
                 className={`flex gap-2 sm:gap-4 ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}
               >
                 {/* Avatar */}
-                <div className={`flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
-                  message.isUser 
-                    ? 'bg-blue-500 text-white' 
-                    : message.isError 
+                <div className={`flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${message.isUser
+                    ? 'bg-blue-500 text-white'
+                    : message.isError
                       ? 'bg-red-500 text-white'
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}>
+                  }`}>
                   {message.isUser ? (
                     <User className="w-3 h-3 sm:w-4 sm:h-4" />
                   ) : (
@@ -424,32 +421,30 @@ What would you like to explore today?`;
 
                 {/* Message Bubble */}
                 <div className={`flex-1 max-w-[90%] sm:max-w-[85%] ${message.isUser ? 'text-right' : 'text-left'}`}>
-                  <div className={`inline-block rounded-2xl ${
-                    message.isUser
+                  <div className={`inline-block rounded-2xl ${message.isUser
                       ? 'bg-blue-600 text-white rounded-br-md px-3 py-2 sm:px-4 sm:py-3'
                       : message.isError
                         ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-bl-md px-3 py-2 sm:px-4 sm:py-3'
                         : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-md border border-gray-200 dark:border-gray-700 shadow-sm px-3 py-2 sm:px-4 sm:py-3'
-                  }`}>
+                    }`}>
                     {message.isUser ? (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">
                         {message.content}
                       </p>
                     ) : (
                       <div className="text-sm leading-relaxed">
-                        <RefinedAIResponse 
-                          content={message.content} 
-                          isTyping={typingMessageId === message.id} 
+                        <RefinedAIResponse
+                          content={message.content}
+                          isTyping={typingMessageId === message.id}
                         />
                       </div>
                     )}
-                    
+
                     {/* Timestamp */}
-                    <div className={`flex items-center gap-1 mt-2 sm:mt-3 text-xs ${
-                      message.isUser 
-                        ? 'text-blue-100 justify-end' 
+                    <div className={`flex items-center gap-1 mt-2 sm:mt-3 text-xs ${message.isUser
+                        ? 'text-blue-100 justify-end'
                         : 'text-gray-500 dark:text-gray-400'
-                    }`}>
+                      }`}>
                       <Clock className="w-3 h-3" />
                       {formatTime(message.timestamp)}
                       {message.topic && message.topic !== 'General' && (
@@ -475,10 +470,10 @@ What would you like to explore today?`;
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="flex gap-1">
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" 
-                         style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" 
-                         style={{ animationDelay: '0.2s' }} />
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.1s' }} />
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.2s' }} />
                   </div>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     🤖 Thinking... (may take up to 1-2 minutes)

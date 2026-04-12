@@ -75,15 +75,15 @@ export const RefinedAIResponse: React.FC<RefinedAIResponseProps> = ({ content, i
   const formatContent = (text: string) => {
     const cleanedText = cleanContent(text);
     const paragraphs = cleanedText.split('\n\n').filter(p => p.trim());
-    
+
     return paragraphs.map((paragraph, index) => {
       const lines = paragraph.split('\n').filter(line => line.trim());
-      
+
       return (
         <div key={index} className="mb-4 last:mb-0">
           {lines.map((line, lineIndex) => {
             const trimmedLine = line.trim();
-            
+
             // Handle bullet points
             if (trimmedLine.startsWith('•')) {
               return (
@@ -93,7 +93,7 @@ export const RefinedAIResponse: React.FC<RefinedAIResponseProps> = ({ content, i
                 </div>
               );
             }
-            
+
             // Handle numbered items (if any remain)
             const numberedMatch = trimmedLine.match(/^(\d+)\.\s*(.*)$/);
             if (numberedMatch) {
@@ -106,7 +106,7 @@ export const RefinedAIResponse: React.FC<RefinedAIResponseProps> = ({ content, i
                 </div>
               );
             }
-            
+
             // Regular line
             return (
               <div key={lineIndex} className="leading-relaxed mb-1 last:mb-0 text-sm sm:text-base">
@@ -128,7 +128,7 @@ export const RefinedAIResponse: React.FC<RefinedAIResponseProps> = ({ content, i
           <span className="inline-block w-0.5 h-4 sm:h-5 bg-blue-500 ml-1 animate-pulse" />
         )}
       </div>
-      
+
       {/* Copy button - only show when typewriter is complete */}
       {isTypewriterComplete && (
         <div className="flex justify-end mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100 dark:border-gray-700">

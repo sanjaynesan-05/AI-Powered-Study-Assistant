@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  Bot, 
-  FileText, 
-  BookOpen, 
+import {
+  Bot,
+  FileText,
+  BookOpen,
   Star,
   User,
   Brain,
@@ -36,23 +36,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
-          
+
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
               className={`w-full flex items-center px-3 py-3 text-left transition-all duration-300
                          rounded-xl group relative overflow-hidden
-                         ${isActive 
-                           ? 'bg-blue-500 text-white shadow-lg' 
-                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                         }`}
+                         ${isActive
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
             >
               <Icon className={`w-5 h-5 ${isOpen ? 'mr-3' : 'mx-auto'} transition-all duration-300`} />
               {isOpen && (
                 <span className="font-medium text-sm">{item.label}</span>
               )}
-              
+
               {/* Hover effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 
                              opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

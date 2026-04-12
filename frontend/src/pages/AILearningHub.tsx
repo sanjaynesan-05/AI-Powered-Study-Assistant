@@ -372,7 +372,7 @@ const AILearningHub: React.FC = () => {
     try {
       const path = await enhancedLearningPathService.generateEnhancedLearningPath(skill, level);
       setEnhancedLearningPath(path);
-      
+
       // Store the path into the "My Paths" collection so it doesn't vanish
       setEnhancedPaths(prev => {
         // Prevent storing direct duplicates
@@ -381,7 +381,7 @@ const AILearningHub: React.FC = () => {
         }
         return prev;
       });
-      
+
       setShowEnhancedPath(true);
       setCompletedSteps([]); // Reset completed steps
     } catch (error) {
