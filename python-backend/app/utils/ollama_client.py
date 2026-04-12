@@ -9,7 +9,7 @@ from typing import Optional, AsyncIterator
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = "http://localhost:11434"
-DEFAULT_MODEL = "llama3.2:3b"
+DEFAULT_MODEL = "llama3:8b"
 DEFAULT_TIMEOUT = 60.0  # seconds
 
 

@@ -4,8 +4,12 @@ Memory Management - Uses ChromaDB for local conversational memory and RAG contex
 import chromadb
 import uuid
 import logging
+import os
 from typing import List, Dict, Any, Optional
 from app.utils.ollama_client import ollama_client
+
+# Ensure telemetry is disabled consistently
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 logger = logging.getLogger(__name__)
 

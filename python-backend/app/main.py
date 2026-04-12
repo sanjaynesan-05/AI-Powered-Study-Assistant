@@ -27,7 +27,7 @@ logger = get_logger("app.main")
 
 from app.langgraph.graph import learning_graph
 from app.langgraph.state import AgentState
-from app.memory.mongodb_store import memory_store
+from app.memory.postgres_store import memory_store
 from app.api.middleware import RateLimitMiddleware
 from app.api.monitoring_middleware import MonitoringMiddleware
 from app.utils.llm import router as llm_router
@@ -62,22 +62,22 @@ async def startup_event():
 
 
 
-# CORS middleware
+# 1. Monitoring middleware — registered first, executed second-to-last
+app.add_middleware(MonitoringMiddleware)
+
+# 2. Rate Limiting Middleware — registered second, executed second
+app.add_middleware(
+    RateLimitMiddleware,
+    redis_url=settings.REDIS_URL
+)
+
+# 3. CORS middleware — MUST BE REGISTERED LAST TO EXECUTE FIRST FOR REQUESTS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-
-# Monitoring middleware — must be registered BEFORE other middlewares
-app.add_middleware(MonitoringMiddleware)
-
-# Rate Limiting Middleware
-app.add_middleware(
-    RateLimitMiddleware,
-    redis_url=settings.REDIS_URL
 )
 
 # Include Authentication Router

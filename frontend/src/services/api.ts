@@ -75,7 +75,7 @@ export const authService = {
       console.log('Logging in user with Google credential');
       
       // Use the new structured backend route
-      const response = await api.post<any>('/auth/google', { credential });
+      const response = await api.post<any>('/auth/google', { token: credential });
       console.log('Google login successful', response.data);
       
       const authData = response.data;

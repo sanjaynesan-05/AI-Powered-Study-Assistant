@@ -41,7 +41,6 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
   const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
     setLoading(true);
     try {
-      // Deep Clean: Standardized fetch logic for token exchange
       const res = await fetch(`${API_BASE_URL}/auth/google`, {
         method: "POST",
         headers: {
@@ -52,27 +51,29 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ type, onClose }) => {
         })
       });
 
+      if (!res.ok) {
+        throw new Error('Backend failed to verify Google token.');
+      }
+
       const data = await res.json();
       console.log("Google Login success:", data);
 
       if (credentialResponse.credential) {
-         // Integrate with local AuthContext
          const success = await googleLogin(credentialResponse.credential);
          if (success) {
            setShowSuccess(true);
-           navigate('/profile');
            setTimeout(() => {
              setShowSuccess(false);
              onClose();
-           }, 1200);
+             navigate('/profile');
+           }, 800);
          } else {
-           setError('Google login failed. Please try again.');
+           setError('Google login sync failed.');
          }
       }
-
     } catch (err) {
-      console.error("Google Login Connection error:", err);
-      setError('Google login failed: Backend connection refused.');
+      console.error("Google Login Error:", err);
+      setError(err instanceof Error ? err.message : 'Connection refused.');
     } finally {
       setLoading(false);
     }

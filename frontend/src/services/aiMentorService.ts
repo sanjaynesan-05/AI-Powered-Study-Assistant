@@ -46,16 +46,13 @@ class AIService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-      const response = await fetch(`${this.baseUrl}${PYTHON_AI_CONFIG.ENDPOINTS.MOTIVATION}`, {
+      const response = await fetch(`${this.baseUrl}${PYTHON_AI_CONFIG.ENDPOINTS.SMART_AI}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          current_mood: 'focused',
-          challenges: [prompt.trim()],
-          goals: topic ? [topic] : ['learning'],
-          achievements: []
+          prompt: topic ? `Context: ${topic}\n\nQuestion: ${prompt.trim()}` : prompt.trim()
         }),
         signal: controller.signal
       });
@@ -69,14 +66,13 @@ class AIService {
 
       const responseData = await response.json();
 
-      // Transform Python backend response to AIResponse format
+      // Transform Orchestrator response to AIResponse format
       const data: AIResponse = {
         success: responseData.success || true,
-        message: responseData.data?.motivational_message ||
-                responseData.data?.primary_message ||
+        message: responseData.response || 
                 responseData.data?.message ||
                 'I\'m here to help you with your learning journey!',
-        topic: topic,
+        topic: topic || responseData.intent,
         timestamp: responseData.timestamp || new Date().toISOString()
       };
 

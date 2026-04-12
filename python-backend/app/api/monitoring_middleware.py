@@ -32,7 +32,11 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        # ── Skip noisy utility paths ──────────────────────────────────────
+        # ── 1. BYPASS FOR CORS PREFLIGHT ──────────────────────────────────
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
+        # ── 2. SKIP NOISY UTILITY PATHS ────────────────────────────────────
         if request.url.path in SKIP_PATHS:
             return await call_next(request)
 

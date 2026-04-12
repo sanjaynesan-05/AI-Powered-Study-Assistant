@@ -15,7 +15,7 @@ from app.agents.wellness import wellness_agent
 from app.agents.scheduler import scheduler_agent
 from app.agents.motivation import motivation_agent
 from app.agents.explainability import explainability_agent
-from app.memory.mongodb_store import memory_store
+from app.memory.postgres_store import memory_store
 
 def create_learning_graph():
     """

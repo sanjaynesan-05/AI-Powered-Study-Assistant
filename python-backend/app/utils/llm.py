@@ -1,12 +1,11 @@
 """
-Utility functions for LLM interactions with production-grade routing
+Utility functions for LLM interactions - Exclusively using Local Ollama
 """
 import time
 import json
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
 from app.config import settings
 from prometheus_client import Counter, Histogram
@@ -18,114 +17,75 @@ LLM_REQUESTS = Counter('llm_requests_total', 'Total LLM requests', ['model', 'pr
 LLM_LATENCY = Histogram('llm_latency_seconds', 'Latency of LLM requests', ['model', 'provider'])
 LLM_FAILURES = Counter('llm_failures_total', 'Total LLM failures', ['model', 'provider'])
 
-class LatencyMetric:
-    def __init__(self, ttft: float, model: str, success: bool):
-        self.ttft = ttft
-        self.model = model
-        self.success = success
-        self.timestamp = time.time()
-
-class ProductionLatencyRouter:
-    """Intelligently routes requests between Local Ollama and Cloud Gemini based on latency/health"""
+class LLMClient:
+    """Production-grade client for Local Ollama interactions"""
     
     def __init__(self):
-        self.metrics: List[LatencyMetric] = []
-        self.LATENCY_THRESHOLD = 1.5  # 1.5 seconds SLA
         self.OLLAMA_BASE_URL = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
-        self._local_model = "llama3.2:3b"
-        self._cloud_model = "gemini-1.5-flash"
-        self._clients = {}
-
-    def _get_ollama_client(self):
-        if "ollama" not in self._clients:
-            self._clients["ollama"] = ChatOllama(
+        self.MODEL = "llama3:8b"
+        self._client = None
+        
+    def _get_client(self):
+        if self._client is None:
+            self._client = ChatOllama(
                 base_url=self.OLLAMA_BASE_URL,
-                model=self._local_model,
+                model=self.MODEL,
                 temperature=0.7
             )
-        return self._clients["ollama"]
+        return self._client
 
-    def _get_gemini_client(self):
-        if "gemini" not in self._clients:
-            self._clients["gemini"] = ChatGoogleGenerativeAI(
-                model=self._cloud_model,
-                google_api_key=settings.GOOGLE_AI_API_KEY,
-                temperature=0.7
-            )
-        return self._clients["gemini"]
-
-    def _get_avg_latency(self) -> float:
-        recent = [m.ttft for m in self.metrics if m.timestamp > (time.time() - 300)] # last 5m
-        if not recent:
-            return 0.0
-        return sum(recent) / len(recent)
-
-    async def route_invoke(self, prompt: str) -> str:
-        avg_lat = self._get_avg_latency()
-        
-        # Decide Strategy: Prefer Local unless it's slow or we have many failures
-        use_cloud = avg_lat > self.LATENCY_THRESHOLD
-        
-        if not use_cloud:
-            try:
-                LLM_REQUESTS.labels(model=self._local_model, provider="ollama").inc()
-                start = time.time()
-                client = self._get_ollama_client()
-                # Use a timeout for local model to prevent hanging
-                response = await asyncio.wait_for(client.ainvoke(prompt), timeout=15.0)
-                ttft = time.time() - start
-                
-                LLM_LATENCY.labels(model=self._local_model, provider="ollama").observe(ttft)
-                self.metrics.append(LatencyMetric(ttft, self._local_model, True))
-                logger.info(f"Routed to Local Ollama ({ttft:.2f}s)")
-                return response.content
-            except Exception as e:
-                LLM_FAILURES.labels(model=self._local_model, provider="ollama").inc()
-                logger.warning(f"Local Ollama failed: {str(e)}. Falling back to Cloud.")
-                self.metrics.append(LatencyMetric(15.0, self._local_model, False))
-                # Fall through to cloud
-        
-        # Cloud Fallback
-        LLM_REQUESTS.labels(model=self._cloud_model, provider="google").inc()
-        start = time.time()
-        client = self._get_gemini_client()
-        response = await client.ainvoke(prompt)
-        ttft = time.time() - start
-        
-        LLM_LATENCY.labels(model=self._cloud_model, provider="google").observe(ttft)
-        logger.info(f"Routed to Cloud Gemini ({ttft:.2f}s) [High Latency={use_cloud}]")
-        return response.content
-
-# Global Router Instance
-router = ProductionLatencyRouter()
-
-class LLMClient:
-    """Wrapper that utilizes the ProductionLatencyRouter for all LLM calls"""
-    
     async def ainvoke(self, prompt: str) -> str:
-        """Async invoke LLM via Router"""
+        """Async invoke LLM using Ollama"""
+        LLM_REQUESTS.labels(model=self.MODEL, provider="ollama").inc()
+        start = time.time()
+        
         try:
-            return await router.route_invoke(prompt)
-        except Exception as e:
-            logger.error(f"Critical error during LLM invocation: {str(e)}")
-            raise
-    
-    def invoke(self, prompt: str) -> str:
-        """Sync invoke LLM (Note: Production router prefers async, but we provide sync wrapper)"""
-        # For sync, we use a simple loop runner or just fallback immediately to gemini for simplicity if needed
-        # but to keep it safe we run the async route in a loop if possible, or just gemini sync.
-        try:
-            client = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
-                google_api_key=settings.GOOGLE_AI_API_KEY,
-                temperature=0.7
-            )
-            response = client.invoke(prompt)
+            client = self._get_client()
+            # 30 second timeout for 8B model on consumer hardware
+            response = await asyncio.wait_for(client.ainvoke(prompt), timeout=30.0)
+            
+            latency = time.time() - start
+            LLM_LATENCY.labels(model=self.MODEL, provider="ollama").observe(latency)
+            logger.info(f"Ollama {self.MODEL} responded in {latency:.2f}s")
+            
             return response.content
+            
+        except asyncio.TimeoutError:
+            LLM_FAILURES.labels(model=self.MODEL, provider="ollama").inc()
+            logger.error(f"Ollama timeout after 30s for model {self.MODEL}")
+            raise RuntimeError(f"Ollama model {self.MODEL} timed out.")
         except Exception as e:
-            logger.error(f"Error during sync LLM invocation: {str(e)}")
+            LLM_FAILURES.labels(model=self.MODEL, provider="ollama").inc()
+            logger.error(f"Ollama invocation error: {str(e)}")
             raise
-    
+
+    def invoke(self, prompt: str) -> str:
+        """Sync invoke LLM (Wrapper around async)"""
+        try:
+            # Use run_coroutine_threadsafe or similar if in an event loop, 
+            # but for simple sync scripts we can use asyncio.run if no loop is running
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                return asyncio.run(self.ainvoke(prompt))
+                
+            if loop.is_running():
+                # This is tricky in FastAPI, but agents usually call ainvoke
+                # If we MUST have sync, we use a separate client or run in executor
+                client = ChatOllama(
+                    base_url=self.OLLAMA_BASE_URL,
+                    model=self.MODEL,
+                    temperature=0.7
+                )
+                response = client.invoke(prompt)
+                return response.content
+            else:
+                return loop.run_until_complete(self.ainvoke(prompt))
+                
+        except Exception as e:
+            logger.error(f"Ollama sync invocation error: {str(e)}")
+            raise
+
     @staticmethod
     def parse_json_response(content: str) -> Dict[str, Any]:
         """Parse JSON from LLM response, handling markdown code blocks"""
@@ -148,5 +108,6 @@ class LLMClient:
                 "raw_content": content
             }
 
+# Global Instance
 llm_client = LLMClient()
-
+router = llm_client # For backward compatibility with files importing 'router'

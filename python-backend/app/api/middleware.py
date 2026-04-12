@@ -39,13 +39,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.limiter = RedisRateLimiter(redis_url)
 
     async def dispatch(self, request: Request, call_next):
-        # Allow health checks and root without limiting
+        # ── 1. BYPASS FOR CORS PREFLIGHT ──────────────────────────────────
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
+        # ── 2. BYPASS FOR HEALTH CHECKS ───────────────────────────────────
         if request.url.path in ["/api/health", "/health", "/"]:
             return await call_next(request)
             
-        client_ip = request.client.host
-        if await self.limiter.is_rate_limited(client_ip):
-            logger.warning(f"Rate limit exceeded for IP: {client_ip}")
-            raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
+        # ── 3. FAIL-SOFT RATE LIMITING ────────────────────────────────────
+        try:
+            client_ip = request.client.host
+            if await self.limiter.is_rate_limited(client_ip):
+                logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+                raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
+        except Exception as e:
+            # Never break the request path because of a rate-limiter failure
+            logger.error(f"RateLimitMiddleware exception (failing-soft): {str(e)}")
             
         return await call_next(request)

@@ -88,7 +88,8 @@ export const PYTHON_AI_CONFIG = {
     SCHEDULE: '/schedule-optimization',
     MOTIVATION: '/motivation-boost',
     PERSONALIZATION: '/personalization',
-    HEALTH: '/health'
+    HEALTH: '/health',
+    SMART_AI: '/ai'
   }
 };
 
