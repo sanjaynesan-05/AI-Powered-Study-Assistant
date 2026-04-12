@@ -47,9 +47,20 @@ export const AIMentorPage: React.FC = () => {
     initializeComponent();
   }, []);
 
-  // Update suggested questions when topic changes
+  // Update welcome message when topic changes
   useEffect(() => {
-    // Removed suggested questions functionality - we'll focus on the main chat
+    setMessages(prev => {
+      // If the only message is a welcome message, update it to match the new topic!
+      if (prev.length === 1 && prev[0].id.startsWith('welcome-')) {
+         return [{
+           ...prev[0],
+           id: 'welcome-' + Date.now(),
+           content: getWelcomeMessageForTopic(selectedTopic),
+           topic: selectedTopic
+         }];
+      }
+      return prev;
+    });
   }, [selectedTopic]);
 
   /**
@@ -65,8 +76,14 @@ export const AIMentorPage: React.FC = () => {
       const isHealthy = await aiMentorService.isHealthy();
       setIsServiceHealthy(isHealthy);
 
-      // Add welcome message
-      addWelcomeMessage();
+      // Initial welcome message (uses default 'selectedTopic' state on mount)
+      setMessages([{
+        id: 'welcome-' + Date.now(),
+        content: `Hi there! 👋 I'm your AI Study Assistant, ready to help you learn and grow! \n\nPlease select a specific topic from the dropdown above to begin our specialized session.`,
+        isUser: false,
+        timestamp: new Date(),
+        topic: 'General'
+      }]);
 
     } catch (error) {
       console.error('Failed to initialize AI Mentor:', error);
@@ -75,14 +92,29 @@ export const AIMentorPage: React.FC = () => {
   };
 
   /**
+   * Get the tailored welcome message for the selected topic
+   */
+  const getWelcomeMessageForTopic = (topic: string): string => {
+    switch (topic) {
+      case 'Mental Wellness': return "Hi there! 👋 I'm your Academic Wellness Coach. I'm here to support your mental health, help you manage academic stress, and build healthy habits. How are you feeling today?";
+      case 'Career Guidance': return "Hello! 👋 I'm your Tech Career Strategist. Ready to plan your roadmap, build an outstanding resume, or prepare for that big interview? What are your career goals?";
+      case 'GenAI': return "Welcome! 👋 I'm your GenAI Architect. Whether you want to understand LLMs, build RAG pipelines, or master prompt engineering, I'm here to help. What shall we explore?";
+      case 'Data Information Security': return "Greetings! 👋 I'm your Principal Cybersecurity Engineer. I can help you understand zero-trust architectures, encryption, and secure coding. What security topic are we tackling today?";
+      case 'Cloud Computing Analysis': return "Hi! 👋 I'm your Cloud Solutions Architect. Ready to design scalable AWS/Azure/GCP infrastructure or optimize your DevOps pipeline? What's the project?";
+      case 'Brain Computer Interface': return "Hello! 👋 I'm your Neuroscience Researcher specializing in BCI. Want to discuss EEG signals, neural decoding, or the future of brain-machine tech?";
+      case 'MLOps': return "Welcome! 👋 I'm your Head of MLOps. Let's design some robust machine learning production pipelines, set up CI/CD for models, or discuss model monitoring. Where should we start?";
+      case 'Robotic Process Automation (RPA)': return "Hi there! 👋 I'm your RPA Architect. Let's automate those repetitive workflows and optimize your business processes. What are we automating today?";
+      default: return `Hi there! 🎓 I'm your AI Study Assistant, ready to help you master ${topic}. Let's dive into some concepts! What would you like to explore today?`;
+    }
+  };
+
+  /**
    * Add welcome message to start the conversation
    */
-  const addWelcomeMessage = () => {
+  const addWelcomeMessage = (topic: string = selectedTopic) => {
     const welcomeMessage: ChatMessage = {
       id: 'welcome-' + Date.now(),
-      content: `Hi there! 👋 I'm your AI Study Assistant, ready to help you learn and grow! 
-
-I can help you with programming, career guidance, study techniques, and much more. What would you like to explore today?`,
+      content: getWelcomeMessageForTopic(topic),
       isUser: false,
       timestamp: new Date(),
       topic: 'General'
@@ -179,7 +211,7 @@ I can help you with programming, career guidance, study techniques, and much mor
   const startNewChat = () => {
     setMessages([]);
     setInputValue('');
-    addWelcomeMessage();
+    addWelcomeMessage(selectedTopic);
   };
 
   /**

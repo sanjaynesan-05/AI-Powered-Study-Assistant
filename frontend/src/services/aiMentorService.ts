@@ -141,12 +141,14 @@ class AIService {
     try {
       // Return predefined topics since Python backend doesn't have topic list
       const defaultTopics: StudyTopic[] = [
-        { id: 'python', name: 'Python Programming', description: 'Learn Python from basics to advanced' },
-        { id: 'javascript', name: 'JavaScript', description: 'Web development with JavaScript' },
-        { id: 'data-science', name: 'Data Science', description: 'Data analysis and machine learning' },
-        { id: 'web-development', name: 'Web Development', description: 'Full-stack web development' },
-        { id: 'algorithms', name: 'Algorithms', description: 'Problem solving and algorithms' },
-        { id: 'machine-learning', name: 'Machine Learning', description: 'AI and machine learning concepts' }
+        { id: 'mental-wellness', name: 'Mental Wellness', description: 'Tips and guidance for student mental health' },
+        { id: 'career-guidance', name: 'Career Guidance', description: 'Career path planning and advice' },
+        { id: 'genai', name: 'GenAI', description: 'Generative AI and foundation models' },
+        { id: 'data-info-security', name: 'Data Information Security', description: 'Cybersecurity and data protection' },
+        { id: 'cloud-computing', name: 'Cloud Computing Analysis', description: 'Cloud infrastructure and analysis' },
+        { id: 'bci', name: 'Brain Computer Interface', description: 'BCI systems and neuroscience tech' },
+        { id: 'mlops', name: 'MLOps', description: 'Machine Learning Operations and deployment' },
+        { id: 'rpa', name: 'Robotic Process Automation (RPA)', description: 'Automating business processes with robots' }
       ];
 
       return defaultTopics;
