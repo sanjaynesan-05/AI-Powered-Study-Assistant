@@ -37,6 +37,7 @@ export const JobEligibilityTest: React.FC<JobEligibilityTestProps> = ({
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [warningCount, setWarningCount] = useState(0);
+  const WARNING_LIMIT = 7;
   const [testCompleted, setTestCompleted] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
@@ -111,10 +112,13 @@ export const JobEligibilityTest: React.FC<JobEligibilityTestProps> = ({
   useEffect(() => {
     if (!job) return;
     
-    // Here we're generating mock questions based on job skills
-    // In a real app, you would fetch questions from an API
-    const generatedQuestions = generateQuestionsForJob(job);
-    setQuestions(generatedQuestions);
+    // If job has questions (AI generated), use those. Otherwise generate mock ones.
+    if ((job as any).questions && (job as any).questions.length > 0) {
+      setQuestions((job as any).questions);
+    } else {
+      const generatedQuestions = generateQuestionsForJob(job);
+      setQuestions(generatedQuestions);
+    }
   }, [job]);
 
   // Detect fullscreen changes
@@ -123,11 +127,13 @@ export const JobEligibilityTest: React.FC<JobEligibilityTestProps> = ({
       setIsFullscreen(!!document.fullscreenElement);
       
       if (!document.fullscreenElement && isOpen && !testCompleted) {
-        setWarningCount(prev => prev + 1);
-        if (warningCount >= 2) {
-          // Auto-quit the test after 3 warnings
-          handleSubmitTest();
-        }
+        setWarningCount(prev => {
+          const newCount = prev + 1;
+          if (newCount >= WARNING_LIMIT) {
+            handleSubmitTest();
+          }
+          return newCount;
+        });
       }
     };
 
@@ -174,11 +180,13 @@ export const JobEligibilityTest: React.FC<JobEligibilityTestProps> = ({
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && isOpen && !testCompleted) {
-        setWarningCount(prev => prev + 1);
-        if (warningCount >= 2) {
-          // Auto-quit the test after 3 warnings
-          handleSubmitTest();
-        }
+        setWarningCount(prev => {
+          const newCount = prev + 1;
+          if (newCount >= WARNING_LIMIT) {
+            handleSubmitTest();
+          }
+          return newCount;
+        });
       }
     };
 
@@ -285,8 +293,26 @@ export const JobEligibilityTest: React.FC<JobEligibilityTestProps> = ({
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
+      {/* Lockdown Overlay */}
+      {!isFullscreen && !testCompleted && (
+        <div className="absolute inset-0 bg-gray-900/95 z-[60] flex flex-col items-center justify-center text-white p-8 text-center animate-in fade-in duration-300">
+          <AlertCircle size={64} className="text-red-500 mb-6 animate-bounce" />
+          <h2 className="text-3xl font-bold mb-4">Fullscreen Required</h2>
+          <p className="text-gray-400 mb-8 max-w-md">
+            To prevent cheating and ensure a fair environment, diagnostic tests must be taken in fullscreen mode. 
+            You have {WARNING_LIMIT - warningCount} chances remaining.
+          </p>
+          <button 
+            onClick={() => document.documentElement.requestFullscreen()}
+            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105"
+          >
+            Re-enter Fullscreen to Continue
+          </button>
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -296,7 +322,7 @@ export const JobEligibilityTest: React.FC<JobEligibilityTestProps> = ({
           {warningCount > 0 && (
             <div className="bg-red-100 text-red-700 px-4 py-2 rounded-lg flex items-center">
               <AlertCircle size={18} className="mr-2" />
-              <span className="text-sm">Warning: {warningCount}/3</span>
+              <span className="text-sm font-bold">Chances: {warningCount}/{WARNING_LIMIT}</span>
             </div>
           )}
           
@@ -387,9 +413,9 @@ export const JobEligibilityTest: React.FC<JobEligibilityTestProps> = ({
         </div>
 
         {/* Warning about tab switching */}
-        <div className="mt-6 text-center text-sm text-red-500">
-          <p>Warning: Exiting fullscreen mode or switching tabs will count as a warning.</p>
-          <p>Three warnings will automatically end the test.</p>
+        <div className="mt-6 text-center text-sm text-red-500 font-medium">
+          <p>Warning: Exiting fullscreen mode or switching tabs counts as a penalty.</p>
+          <p>{WARNING_LIMIT} strikes will automatically end and submit the test.</p>
         </div>
       </div>
     </div>

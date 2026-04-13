@@ -9,6 +9,9 @@ import aiohttp
 
 from app.memory.vector_store import vector_store
 from app.utils.embeddings import embedding_engine
+from app.utils.logger import get_logger
+
+logger = get_logger("app.agents.learning_resource")
 
 class LearningResourceAgent:
     """Generates AI explanations and curates external resources with RAG support"""
@@ -176,5 +179,67 @@ class LearningResourceAgent:
             ex["platform"] = "AI Generated"
         
         return exercises
+
+    async def generate_intelligent_roadmap(self, skill: str, difficulty: str, learning_style: str = "mixed", career_goals: List[str] = None) -> List[Dict]:
+        """Generate a comprehensive, fruitful, and constructive multi-module learning roadmap"""
+        
+        career_ctx = f" aiming for: {', '.join(career_goals)}" if career_goals else ""
+        
+        prompt = f"""
+        You are an elite educational architect. Lead the user through a high-impact, constructive learning journey for "{skill}" ({difficulty} level){career_ctx}.
+        
+        Your task is to generate a 5-8 topic structured roadmap. Each topic must be "fruitful"—rich in detail and educational value.
+        
+        Adapt the content to a {learning_style} learning style.
+        
+        OUTPUT FORMAT:
+        Return ONLY valid JSON with this exact structure:
+        {{
+            "topics": [
+                {{
+                    "id": "unique_id_1",
+                    "title": "Clear Topic Header",
+                    "description": "A very detailed, constructive explanation of why this matters and what will be learned (3-4 sentences).",
+                    "difficulty": "{difficulty}",
+                    "estimated_time": "1.5 hours",
+                    "learning_outcomes": [
+                        "Specific actionable skill 1",
+                        "Specific actionable skill 2"
+                    ],
+                    "exercises": [
+                        {{
+                            "title": "Interactive Challenge",
+                            "description": "Constructive exercise description",
+                            "type": "coding",
+                            "difficulty": "{difficulty}",
+                            "estimatedTime": "30 mins"
+                        }}
+                    ],
+                    "assessment_questions": [
+                        {{
+                            "question": "Concept check question",
+                            "type": "multiple_choice",
+                            "options": ["A", "B", "C", "D"],
+                            "correctAnswer": "A",
+                            "explanation": "Why this is correct"
+                        }}
+                    ]
+                }}
+            ]
+        }}
+        
+        GUIDELINES:
+        - Be constructive: Focus on building skills progressively.
+        - Be fruitful: Avoid generic descriptions. provide specific technical context.
+        - Tone: Encouraging, professional, and mentor-like.
+        """
+        
+        try:
+            response = await llm_client.ainvoke(prompt)
+            data = llm_client.parse_json_response(response)
+            return data.get("topics", [])
+        except Exception as e:
+            logger.error(f"Roadmap generation failed: {e}")
+            return []
 
 learning_resource_agent = LearningResourceAgent()

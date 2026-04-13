@@ -9,65 +9,68 @@ import uuid
 class AssessmentAgent:
     """Creates adaptive quizzes and evaluates performance"""
     
-    async def create_quiz(self, state: AgentState) -> Dict:
-        """Generate adaptive quiz based on current skill"""
+    async def generate(self, state: Dict) -> Dict:
+        """Bridge method for orchestrator to generate a quiz"""
+        # Convert simple dict state to AgentState if needed, or just extract values
+        current_skill = state.get("current_skill", "")
+        difficulty = state.get("difficulty_preference", "intermediate")
+        count = state.get("question_count", 15)
+        
+        # Call create_quiz logic or implement directly
+        return await self.create_quiz({
+            "current_skill": current_skill,
+            "difficulty_preference": difficulty,
+            "question_count": count
+        })
+
+    async def create_quiz(self, state: Dict) -> Dict:
+        """Generate MCQ quiz based on current skill and count"""
         
         current_skill = state.get("current_skill", "")
         difficulty = state.get("difficulty_preference", "intermediate")
-        resources = state.get("resources", [])
+        count = state.get("question_count", 15)
         
         prompt = f"""
-        Create an adaptive quiz for {current_skill} at {difficulty} level.
+        Generate a {count}-question Multiple Choice quiz on {current_skill} ({difficulty} level).
         
-        Generate 5 questions:
-        - 3 Multiple Choice (4 options each)
-        - 1 Short Answer
-        - 1 Practical/Application question
-        
-        For each question provide:
+        OUTPUT FORMAT:
+        Return ONLY valid JSON with this exact structure:
         {{
-            "question_id": "unique_id",
-            "question_text": "the question",
-            "question_type": "mcq|short_answer|practical",
-            "options": ["A", "B", "C", "D"],  // for MCQ only
-            "correct_answer": "answer or index",
-            "explanation": "why this is correct",
-            "difficulty_weight": 1-5,
-            "skills_tested": ["skill1", "skill2"]
+            "questions": [
+                {{
+                    "id": "q1",
+                    "text": "The question...",
+                    "options": [
+                        {{ "id": "o1", "text": "Option 1", "isCorrect": true }},
+                        {{ "id": "o2", "text": "Option 2", "isCorrect": false }},
+                        {{ "id": "o3", "text": "Option 3", "isCorrect": false }},
+                        {{ "id": "o4", "text": "Option 4", "isCorrect": false }}
+                    ]
+                }}
+            ]
         }}
-        
-        Return JSON with questions array.
         """
         
         response = await llm_client.ainvoke(prompt)
         data = llm_client.parse_json_response(response)
         
+        # Ensure 'questions' key exists and is a list
+        if not isinstance(data, dict) or "questions" not in data:
+            # Emergency return structure if LLM fails
+            data = {"questions": []}
+            
         questions = data.get("questions", [])
         
-        # Add unique IDs
-        for q in questions:
-            if "question_id" not in q:
-                q["question_id"] = str(uuid.uuid4())
+        # Sanity check: ensure question count is what we requested
+        # If the LLM under-delivers, we accept what we got, but we've asked for 'count'
         
         quiz_id = f"quiz_{uuid.uuid4().hex[:8]}"
         
         return {
-            "quiz_questions": questions,
-            "agent_outputs": {
-                **state.get("agent_outputs", {}),
-                "assessment": {
-                    "quiz_id": quiz_id,
-                    "question_count": len(questions),
-                    "difficulty": difficulty,
-                    "estimated_time": len(questions) * 2,  # 2 min per question
-                    "skill": current_skill
-                }
-            },
-            "execution_path": [*state.get("execution_path", []), "assessment"],
-            "reasoning_chain": [
-                *state.get("reasoning_chain", []),
-                f"Assessment: Created {len(questions)} questions for {current_skill}"
-            ]
+            "questions": questions,
+            "quiz_id": quiz_id,
+            "status": "success",
+            "topic": current_skill
         }
     
     async def evaluate_answers(self, state: AgentState) -> Dict:

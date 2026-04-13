@@ -1,19 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Clock, RefreshCw } from 'lucide-react';
-import { aiMentorService, type AIResponse, type StudyTopic } from '../services/aiMentorService';
+import { ChatMessage, ActionType, StudyTopic } from '../types/chat';
+import { aiMentorService, type AIResponse } from '../services/aiMentorService';
 import { RefinedAIResponse } from '../components/RefinedAIResponse';
-
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAIAgent } from '../contexts/AIAgentContext';
-
-/**
- * Action Types representing structured multi-agent intentions
- */
-type ActionType =
-  | "GENERATE_COURSE"
-  | "GENERATE_ASSESSMENT"
-  | "GET_RECOMMENDATIONS"
-  | "CHAT";
 
 /**
  * Hybrid Intent Parser
@@ -22,19 +13,27 @@ type ActionType =
 const parseUserIntent = (message: string): { type: ActionType; topic?: string } => {
   const lowerMsg = message.toLowerCase();
 
-  // Learning Path / Course triggers
-  const courseMatch = lowerMsg.match(/(?:create|generate|make|build) a (?:course|path|journey|roadmap) (?:on|for|about) (.*)/i) ||
-    lowerMsg.match(/(?:teach me|i want to learn) (.*)/i);
+  // Learning Path / Course triggers - extremely permissive
+  const courseMatch = lowerMsg.match(/(?:create|generate|make|build|give|show|provide|prepare|want|need) (?:me )?(?:an? )?.*(?:course|path|journey|roadmap|syllabus) (?:on|for|about) (.*)/i) ||
+    lowerMsg.match(/(?:teach|learn) (?:me )?(?:on|for|about|in) (.*)/i) ||
+    lowerMsg.match(/(?:i want to learn|i need a roadmap for) (.*)/i) ||
+    lowerMsg.match(/(.+) (?:roadmap|course|syllabus|path|journey)/i);
+  
   if (courseMatch) {
-    const topic = courseMatch[1].trim().replace(/^(how to |about )/, '');
+    const topic = courseMatch[1].trim().replace(/^(how to |about |me a )/, '');
+    console.log(`🎯 Intent Detected: GENERATE_COURSE | Topic: ${topic}`);
     return { type: "GENERATE_COURSE", topic };
   }
 
-  // Assessment triggers
-  const assessMatch = lowerMsg.match(/(?:give|create|generate) (?:an )?assessment (?:on|for) (.*)/i) ||
-    lowerMsg.match(/(?:test me|quiz me) (?:on|for|about) (.*)/i);
+  // Assessment triggers - extremely permissive
+  const assessMatch = lowerMsg.match(/(?:give|create|generate|take|prepare|want|need) (?:an? )?.*(?:test|assessment|exam|quiz|questions) (?:on|for|about) (.*)/i) ||
+    lowerMsg.match(/(?:test|quiz) me (?:on|for|about|in) (.*)/i) ||
+    lowerMsg.match(/questions (?:on|about|for) (.*)/i) ||
+    lowerMsg.match(/(.+) (?:test|assessment|exam|quiz)/i);
+
   if (assessMatch) {
-    const topic = assessMatch[1].trim();
+    const topic = assessMatch[1].trim().replace(/^(how to |about |me a )/, '');
+    console.log(`🎯 Intent Detected: GENERATE_ASSESSMENT | Topic: ${topic}`);
     return { type: "GENERATE_ASSESSMENT", topic };
   }
 
@@ -46,40 +45,32 @@ const parseUserIntent = (message: string): { type: ActionType; topic?: string } 
   return { type: "CHAT" };
 };
 
-/**
- * AI Mentor Chat Message Interface
- */
-interface ChatMessage {
-  id: string;
-  content: string;
-  isUser: boolean;
-  timestamp: Date;
-  topic?: string;
-  isError?: boolean;
-  actionType?: ActionType;
-}
+// types moved to chat.ts
 
 /**
  * AI Mentor Page Component
  * Provides an interactive chat interface with AI study assistant
  */
 export const AIMentorPage: React.FC = () => {
-  // State management
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Global State from context
+  const {
+    mentorMessages: messages,
+    setMentorMessages: setMessages,
+    selectedMentorTopic: selectedTopic,
+    setSelectedMentorTopic: setSelectedTopic,
+    clearMentorHistory: startNewChat,
+    generateEnhancedJourney,
+    generateAdaptiveAssessment,
+  } = useAIAgent();
+
+  // Local UI State
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState<string>('General Conversation');
   const [availableTopics, setAvailableTopics] = useState<StudyTopic[]>([]);
   const [isServiceHealthy, setIsServiceHealthy] = useState(true);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
 
-  // Connect to the global AI Agent Context and Routing
   const navigate = useNavigate();
-  const {
-    generateCompleteJourney,
-    generateAdaptiveAssessment,
-    getPersonalizedRecommendations
-  } = useAIAgent();
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -120,23 +111,21 @@ export const AIMentorPage: React.FC = () => {
    */
   const initializeComponent = async () => {
     try {
-      // Load available topics
       const topics = await aiMentorService.getTopics();
       setAvailableTopics(topics);
 
-      // Check service health
       const isHealthy = await aiMentorService.isHealthy();
       setIsServiceHealthy(isHealthy);
 
-      // Initial welcome message (uses default 'selectedTopic' state on mount)
-      setMessages([{
-        id: 'welcome-' + Date.now(),
-        content: `Hi there! 👋 I'm your AI Study Assistant, ready to help you learn and grow! \n\nPlease select a specific topic from the dropdown above to begin our specialized session.`,
-        isUser: false,
-        timestamp: new Date(),
-        topic: 'General'
-      }]);
-
+      if (messages.length === 0) {
+        setMessages([{
+          id: 'welcome-' + Date.now(),
+          content: `Hi there! 👋 I'm your AI Study Assistant, ready to help you learn and grow! \n\nPlease select a specific topic from the dropdown above to begin our specialized session.`,
+          isUser: false,
+          timestamp: new Date(),
+          topic: 'General'
+        }]);
+      }
     } catch (error) {
       console.error('Failed to initialize AI Mentor:', error);
       setIsServiceHealthy(false);
@@ -222,29 +211,34 @@ What would you like to explore today?`;
       }
 
       if (intentResult.type === "GENERATE_COURSE" && intentResult.topic) {
-        apiMessage = apiMessage + `\n\n[SYSTEM DIRECTIVE]: The user wants a course/learning journey on ${intentResult.topic}. Act as an interactive tutor right here in the chat. DO NOT output a massive syllabus. Instead, introduce the topic, teach the first core concept (Module 1), and then STOP. Ask if they understand before moving to the next concept. Keep responses highly concise and interactive.`;
+        // Force the AI to not output a massive text roadmap when it should be using the specialized UI
+        apiMessage = `[STRICT SYSTEM OVERRIDE]: The user has requested an interactive Learning Path/Roadmap for ${intentResult.topic}. \n\nYOUR TASK: \n1. Acknowledge the request briefly.\n2. State that the learning path is being magically synced to their AI Learning Hub.\n3. DO NOT output a text roadmap or syllabus here.\n4. STOP immediately.`;
 
-        // Fire & Forget: Tell the backend to build and save the syllabus in the background
-        generateCompleteJourney(intentResult.topic).catch(err => console.error("Background course generation failed:", err));
+        // Trigger the ENHANCED journey generation globally
+        generateEnhancedJourney(intentResult.topic).catch(err => console.error("Enhanced course generation failed:", err));
 
-        // Let the user know the system is syncing
         setMessages(prev => [...prev, {
           id: 'sync-' + Date.now(),
-          content: `☁️ I'm teaching you here while syncing this entire course to your **AI Learning Hub** in the background!`,
+          content: `☁️ **AI Learning Hub Syncing...** I'm building your personalized Roadmap for "${intentResult.topic}" right now! \n\n👉 **[View in AI Learning Hub](/ai-learning-hub)**`,
           isUser: false,
           timestamp: new Date()
         }]);
 
       } else if (intentResult.type === "GENERATE_ASSESSMENT" && intentResult.topic) {
-        apiMessage = apiMessage + `\n\n[SYSTEM DIRECTIVE]: The user wants to take an assessment/test on ${intentResult.topic}. Act as an interactive examiner. STRICT RULE: Ask exactly ONE question right now. STOP and await the user's answer. When they answer, evaluate it, explain briefly, and then ask the next question. Do not provide all questions at once.`;
+        // Direct the user to the Mock Test Center without starting a secondary practice in chat
+        apiMessage = `[STRICT SYSTEM OVERRIDE]: The user has requested a formal, proctored Mock Test on ${intentResult.topic}. \n\nYOUR TASK: \n1. Acknowledge and confirm you are building the test.\n2. State exactly that they should click the link below to enter the Mock Test Center.\n3. DO NOT ASK ANY QUESTIONS. \n4. DO NOT PROVIDE ANY PRACTICE CONTENT.\n5. STOP immediately after confirming the test is ready in the center.`;
+
+        // Extract question count from user prompt (e.g. "20 questions")
+        const countMatch = textToSend.match(/(\d+)\s*question/i);
+        const requestedCount = countMatch ? parseInt(countMatch[1], 10) : 15;
 
         // Fire & Forget: Tell the backend to build an assessment in the background
-        generateAdaptiveAssessment(intentResult.topic).catch(err => console.error("Background assessment generation failed:", err));
+        generateAdaptiveAssessment(intentResult.topic, 'intermediate', requestedCount).catch(err => console.error("Background assessment generation failed:", err));
 
         // UI notification
         setMessages(prev => [...prev, {
           id: 'sync-' + Date.now(),
-          content: `☁️ Preparing your test structure in the **AI Learning Hub**... let's begin right here!`,
+          content: `☁️ **Mock Test Engine Started!** I'm generating your custom diagnostic on "${intentResult.topic}". \n\n👉 **[Enter Mock Test Center](/mock-test)**`,
           isUser: false,
           timestamp: new Date()
         }]);
@@ -309,14 +303,6 @@ What would you like to explore today?`;
     }
   };
 
-  /**
-   * Start a new conversation
-   */
-  const startNewChat = () => {
-    setMessages([]);
-    setInputValue('');
-    addWelcomeMessage(selectedTopic);
-  };
 
   /**
    * Format timestamp for display

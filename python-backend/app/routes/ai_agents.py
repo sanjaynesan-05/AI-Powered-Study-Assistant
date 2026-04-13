@@ -56,7 +56,7 @@ async def generate_learning_path(request: LearningPathRequest):
 class AssessmentRequest(BaseModel):
     skill_area: str
     difficulty_level: Optional[str] = "intermediate"
-    question_count: Optional[int] = 5
+    question_count: Optional[int] = 15
 
 @router.post("/generate-assessment")
 async def generate_assessment(request: AssessmentRequest):

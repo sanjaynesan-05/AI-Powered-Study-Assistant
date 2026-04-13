@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bot, FileText, Brain, Star, User } from 'lucide-react';
+import { Bot, FileText, Brain, ClipboardList, User } from 'lucide-react';
 
 export const MobileNavbar: React.FC = () => {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export const MobileNavbar: React.FC = () => {
     { icon: Bot, label: 'AI Mentor', path: '/ai-mentor' },
     { icon: Brain, label: 'AI Learning Hub', path: '/ai-learning-hub' },
     { icon: FileText, label: 'Resume Builder', path: '/resume-builder' },
-    { icon: Star, label: 'Recommendation', path: '/recommendation' },
+    { icon: ClipboardList, label: 'Mock Test', path: '/mock-test' },
   ];
 
   return (

@@ -6,7 +6,8 @@ import {
   Star,
   User,
   Brain,
-  Cpu
+  Cpu,
+  ClipboardList
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -24,7 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
     { icon: Bot, label: 'AI Mentor', path: '/ai-mentor' },
     { icon: Brain, label: 'AI Learning Hub', path: '/ai-learning-hub' },
     { icon: FileText, label: 'Resume Builder', path: '/resume-builder' },
-    { icon: Star, label: 'Recommendation', path: '/recommendation' },
+    { icon: ClipboardList, label: 'Mock Test', path: '/mock-test' },
   ];
 
   return (

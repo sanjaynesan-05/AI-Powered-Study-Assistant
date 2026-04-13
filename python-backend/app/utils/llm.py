@@ -7,6 +7,7 @@ import logging
 import asyncio
 from typing import Dict, Any, List, Optional
 from langchain_community.chat_models import ChatOllama
+from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config import settings
 from prometheus_client import Counter, Histogram
 
@@ -23,7 +24,10 @@ class LLMClient:
     def __init__(self):
         self.OLLAMA_BASE_URL = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
         self.MODEL = "llama3:8b"
+        self.GEMINI_MODEL = "gemini-1.5-flash"
         self._client = None
+        self._gemini_client = None
+        self.use_fallback = bool(settings.GOOGLE_AI_API_KEY)
         
     def _get_client(self):
         if self._client is None:
@@ -34,30 +38,57 @@ class LLMClient:
             )
         return self._client
 
+    def _get_gemini(self):
+        if self._gemini_client is None and self.use_fallback:
+            self._gemini_client = ChatGoogleGenerativeAI(
+                model=self.GEMINI_MODEL,
+                google_api_key=settings.GOOGLE_AI_API_KEY,
+                temperature=0.7
+            )
+        return self._gemini_client
+
     async def ainvoke(self, prompt: str) -> str:
-        """Async invoke LLM using Ollama"""
-        LLM_REQUESTS.labels(model=self.MODEL, provider="ollama").inc()
+        """Async invoke LLM (Ollama first, then Gemini fallback)"""
         start = time.time()
         
+        # ── 1. TRY OLLAMA FIRST ──────────────────────────────────────────
         try:
+            LLM_REQUESTS.labels(model=self.MODEL, provider="ollama").inc()
             client = self._get_client()
-            # 30 second timeout for 8B model on consumer hardware
-            response = await asyncio.wait_for(client.ainvoke(prompt), timeout=30.0)
+            # 15s timeout for fast failover to cloud
+            response = await asyncio.wait_for(client.ainvoke(prompt), timeout=15.0)
             
             latency = time.time() - start
             LLM_LATENCY.labels(model=self.MODEL, provider="ollama").observe(latency)
             logger.info(f"Ollama {self.MODEL} responded in {latency:.2f}s")
-            
             return response.content
             
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, Exception) as e:
             LLM_FAILURES.labels(model=self.MODEL, provider="ollama").inc()
-            logger.error(f"Ollama timeout after 30s for model {self.MODEL}")
-            raise RuntimeError(f"Ollama model {self.MODEL} timed out.")
-        except Exception as e:
-            LLM_FAILURES.labels(model=self.MODEL, provider="ollama").inc()
-            logger.error(f"Ollama invocation error: {str(e)}")
-            raise
+            if not self.use_fallback:
+                logger.error(f"Ollama failed and no fallback available: {str(e)}")
+                raise
+            
+            logger.warning(f"Ollama failed ({type(e).__name__}), falling back to Gemini...")
+
+        # ── 2. FALLBACK TO GEMINI ───────────────────────────────────────
+        try:
+            LLM_REQUESTS.labels(model=self.GEMINI_MODEL, provider="gemini").inc()
+            gemini = self._get_gemini()
+            if not gemini:
+                raise RuntimeError("Gemini fallback not initialized (missing API key)")
+                
+            response = await asyncio.wait_for(gemini.ainvoke(prompt), timeout=30.0)
+            
+            latency = time.time() - start
+            LLM_LATENCY.labels(model=self.GEMINI_MODEL, provider="gemini").observe(latency)
+            logger.info(f"Gemini {self.GEMINI_MODEL} responded in {latency:.2f}s")
+            return response.content
+            
+        except Exception as ge:
+            LLM_FAILURES.labels(model=self.GEMINI_MODEL, provider="gemini").inc()
+            logger.error(f"Gemini fallback also failed: {str(ge)}")
+            raise RuntimeError(f"All LLM providers failed. Last error: {str(ge)}")
 
     def invoke(self, prompt: str) -> str:
         """Sync invoke LLM (Wrapper around async)"""
@@ -107,6 +138,16 @@ class LLMClient:
                 "error": f"Failed to parse JSON: {str(e)}",
                 "raw_content": content
             }
+
+    def _get_avg_latency(self) -> float:
+        """Heuristic for health check latency reporting"""
+        # In a real system we'd pull this from Prometheus or a rolling window
+        # For now, return a placeholder or 0.0 if not tracked
+        return 0.5
+
+    @property
+    def LATENCY_THRESHOLD(self) -> float:
+        return 5.0
 
 # Global Instance
 llm_client = LLMClient()

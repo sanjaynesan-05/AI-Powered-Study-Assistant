@@ -46,7 +46,10 @@ const AILearningHub: React.FC = () => {
     getSkillGapAnalysis,
     clearError,
     learningResources,
-    getSmartResources
+    getSmartResources,
+    enhancedPaths,
+    setEnhancedPaths,
+    generateEnhancedJourney
   } = useAIAgent();
 
   // Form states
@@ -82,106 +85,6 @@ const AILearningHub: React.FC = () => {
   const [selectedPath, setSelectedPath] = useState<any>(null);
   const [pathTopics, setPathTopics] = useState<any[]>([]);
   const [showDetailedPath, setShowDetailedPath] = useState(false);
-  const [enhancedPaths, setEnhancedPaths] = useState<any[]>([
-    {
-      id: '1',
-      title: 'Frontend Development Mastery',
-      description: 'Master modern frontend development with HTML, CSS, JavaScript and React',
-      progress: 65,
-      totalTopics: 12,
-      completedTopics: 8,
-      difficulty: 'intermediate',
-      category: 'Frontend Development',
-      estimatedDuration: '8-12 weeks',
-      rating: 4.8,
-      topics: [
-        {
-          id: 't1',
-          name: 'HTML Fundamentals',
-          completed: true,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=qz0aGYrrlhU',
-          articleUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTML',
-          estimatedTime: '1 hour'
-        },
-        {
-          id: 't2',
-          name: 'CSS Styling & Flexbox',
-          completed: true,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=JJSoEo8JSnc',
-          articleUrl: 'https://css-tricks.com/snippets/css/a-guide-to-flexbox/',
-          estimatedTime: '2 hours'
-        },
-        {
-          id: 't3',
-          name: 'JavaScript Basics',
-          completed: true,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=W6NZfCO5SIk',
-          articleUrl: 'https://javascript.info/first-steps',
-          estimatedTime: '3 hours'
-        },
-        {
-          id: 't4',
-          name: 'ES6+ Features',
-          completed: false,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=NCwa_xi0Uuc',
-          articleUrl: 'https://www.javascripttutorial.net/es6/',
-          estimatedTime: '2 hours'
-        },
-        {
-          id: 't5',
-          name: 'React Components & Props',
-          completed: false,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=Ke90Tje7VS0',
-          articleUrl: 'https://reactjs.org/docs/components-and-props.html',
-          estimatedTime: '2.5 hours'
-        }
-      ]
-    },
-    {
-      id: '2',
-      title: 'Data Science & Analytics',
-      description: 'Python, machine learning, statistics, and data visualization mastery',
-      progress: 30,
-      totalTopics: 10,
-      completedTopics: 3,
-      difficulty: 'intermediate',
-      category: 'Data Science',
-      estimatedDuration: '10-14 weeks',
-      rating: 4.9,
-      topics: [
-        {
-          id: 't1',
-          name: 'Python Fundamentals',
-          completed: true,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=_uQrJ0TkZlc',
-          articleUrl: 'https://docs.python.org/3/tutorial/',
-          estimatedTime: '2 hours'
-        },
-        {
-          id: 't2',
-          name: 'NumPy & Pandas',
-          completed: false,
-          hasVideo: true,
-          hasArticle: true,
-          videoUrl: 'https://www.youtube.com/watch?v=ZB7BZMhfPgk',
-          articleUrl: 'https://pandas.pydata.org/docs/getting_started/index.html',
-          estimatedTime: '3 hours'
-        }
-      ]
-    }
-  ]);
 
   // Get supported skills from enhanced learning path service
   const popularSkills = enhancedLearningPathService.getSupportedSkills();
@@ -192,99 +95,7 @@ const AILearningHub: React.FC = () => {
     'Cloud Computing', 'Cybersecurity', 'Blockchain'
   ];
 
-  useEffect(() => {
-    if (user) {
-      getPersonalizedRecommendations();
-    }
-  }, [user]);
-
-  // Convert AI-generated paths to enhanced format asynchronously using Youtube API
-  useEffect(() => {
-    const processAIPaths = async () => {
-      if (learningPaths.length === 0) return;
-
-      const newConvertedPaths = await Promise.all(
-        learningPaths.map(async (path: any, index: number) => {
-
-          // Hydrate modules with real YouTube videos via API
-          const hydratedTopics = await Promise.all(
-            (path.modules || []).map(async (module: any, moduleIndex: number) => {
-              const moduleName = module.title || module.name || `Concept ${moduleIndex + 1}`;
-              const textQuery = encodeURIComponent(`${path.title || path.skillArea} ${moduleName} documentation`);
-
-              let finalVideoUrl = module.videoUrl;
-
-              // Only search if we don't already have an explicit youtube watch link
-              if (!finalVideoUrl || !finalVideoUrl.includes('watch?v=')) {
-                try {
-                  const searchResults = await youtubeService.searchEducationalVideos({
-                    query: `${path.title || path.skillArea} ${moduleName}`,
-                    maxResults: 1
-                  });
-
-                  if (searchResults && searchResults.length > 0) {
-                    finalVideoUrl = searchResults[0].videoUrl;
-                  } else {
-                    finalVideoUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${path.title || path.skillArea} ${moduleName} tutorial`)}`;
-                  };
-                } catch (err) {
-                  finalVideoUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${path.title || path.skillArea} ${moduleName} tutorial`)}`;
-                }
-              }
-
-              return {
-                id: `t${moduleIndex + 1}`,
-                name: `Module ${moduleIndex + 1}: ${moduleName}`,
-                completed: false,
-                hasVideo: true,
-                hasArticle: true,
-                videoUrl: finalVideoUrl,
-                articleUrl: module.articleUrl || `https://www.google.com/search?q=${textQuery}`,
-                estimatedTime: module.estimatedHours ? `${module.estimatedHours} hours` : '2 hours'
-              };
-            })
-          );
-
-          // Provide fallback module if nothing returned
-          const finalTopics = hydratedTopics.length > 0 ? hydratedTopics : [
-            {
-              id: 't1',
-              name: 'Module 1: Introduction',
-              completed: false,
-              hasVideo: true,
-              hasArticle: true,
-              videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent((path.title || 'Course') + ' introduction tutorial')}`,
-              articleUrl: `https://www.google.com/search?q=${encodeURIComponent((path.title || 'Course') + ' documentation')}`,
-              estimatedTime: '1 hour'
-            }
-          ];
-
-          return {
-            id: `ai-${path.id || index + Date.now()}`,
-            title: path.title || 'AI Generated Path',
-            description: path.description || 'AI-powered learning journey',
-            progress: 0,
-            totalTopics: finalTopics.length,
-            completedTopics: 0,
-            difficulty: path.difficultyLevel || 'intermediate',
-            category: path.skillArea || 'General',
-            estimatedDuration: path.estimatedDuration || '6-8 weeks',
-            rating: 4.7,
-            topics: finalTopics
-          };
-        })
-      );
-
-      // Add hydrated paths to state
-      setEnhancedPaths(prev => {
-        const existingTitles = prev.map(p => p.title);
-        const newPaths = newConvertedPaths.filter((path: any) => !existingTitles.includes(path.title));
-        return [...prev, ...newPaths];
-      });
-    };
-
-    processAIPaths();
-  }, [learningPaths]);
+  // Effects handled by AIAgentContext
 
   const handleGenerateJourney = async () => {
     if (!selectedSkill && !skillInput) return;
@@ -472,56 +283,10 @@ const AILearningHub: React.FC = () => {
 
   // Enhanced AI-powered learning path generation
   const handleGenerateEnhancedJourney = async () => {
-    if (!selectedSkill && !skillInput) return;
-
     const targetSkill = selectedSkill || skillInput;
+    if (!targetSkill) return;
 
-    const objective: LearningObjective = {
-      skill: targetSkill,
-      currentLevel: difficulty as 'beginner' | 'intermediate' | 'advanced',
-      targetLevel: difficulty === 'beginner' ? 'intermediate' : 'advanced' as 'intermediate' | 'advanced' | 'expert',
-      timeframe: `${preferences.timeCommitment} weeks`,
-      learningStyle: preferences.learningStyle as 'visual' | 'auditory' | 'kinesthetic' | 'reading' | 'mixed',
-      careerGoals: preferences.careerGoals ? [preferences.careerGoals] : ['General skill improvement']
-    };
-
-    try {
-      const enhancedTopics = await advancedAILearningService.generateIntelligentLearningPath(objective);
-
-      // Add to enhanced paths
-      const newPath = {
-        id: `enhanced-${Date.now()}`,
-        title: `AI-Enhanced ${targetSkill} Mastery`,
-        description: `Comprehensive AI-powered learning journey for ${targetSkill} with personalized content`,
-        progress: 0,
-        totalTopics: enhancedTopics.length,
-        completedTopics: 0,
-        difficulty: difficulty,
-        category: targetSkill,
-        estimatedDuration: '10-14 weeks',
-        rating: 4.9,
-        topics: enhancedTopics.map(topic => ({
-          id: topic.id,
-          name: topic.title,
-          completed: false,
-          hasVideo: topic.videos.length > 0,
-          hasArticle: topic.articles.length > 0,
-          videoUrl: topic.videos[0]?.videoUrl || '',
-          articleUrl: topic.articles[0]?.url || '',
-          estimatedTime: topic.estimatedTime,
-          description: topic.description,
-          exercises: topic.exercises,
-          assessmentQuestions: topic.assessmentQuestions
-        }))
-      };
-
-      setEnhancedPaths(prev => [newPath, ...prev]);
-      setActiveTab('paths'); // Switch to paths tab to show the new path
-    } catch (error) {
-      console.error('Enhanced journey generation failed:', error);
-      // Fallback to regular journey generation
-      await handleGenerateJourney();
-    }
+    await generateEnhancedJourney(targetSkill, difficulty, preferences);
   };
 
   // Enhanced YouTube video search for topics
@@ -1645,19 +1410,30 @@ const AILearningHub: React.FC = () => {
         </div>
       )}
 
-      {/* Other tabs placeholder */}
-      {activeTab !== 'generate' && (
-        <div className="bg-white rounded-lg border shadow-sm">
-          <div className="p-6 text-center">
-            <p className="text-gray-600">
-              🚀 {activeTab === 'assessment' ? 'AI Skill Assessment' :
-                activeTab === 'recommendations' ? 'AI Recommendations' :
-                  'My Learning Paths'} feature coming soon!
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              The AI agent system is ready - frontend implementation in progress.
-            </p>
-          </div>
+      {/* Placeholder for tabs without full implementation yet */}
+      {activeTab === 'assessment' && !currentAssessment && (
+        <div className="bg-white rounded-lg border shadow-sm p-12 text-center">
+          <Target className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold mb-2">AI Adaptive Assessment</h3>
+          <p className="text-gray-600 max-w-md mx-auto">
+            Generate an AI-powered diagnostic test to identify your skill gaps and get a personalized learning path.
+          </p>
+          <button 
+            onClick={() => setActiveTab('generate')}
+            className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Go to Generator
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'recommendations' && recommendations.length === 0 && (
+        <div className="bg-white rounded-lg border shadow-sm p-12 text-center">
+          <Sparkles className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold mb-2">AI-Powered Recommendations</h3>
+          <p className="text-gray-600 max-w-md mx-auto">
+            Once you complete assessments and paths, our AI will provide personalized next steps and skill-up recommendations.
+          </p>
         </div>
       )}
     </div>

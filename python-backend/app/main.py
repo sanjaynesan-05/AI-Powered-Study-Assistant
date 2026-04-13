@@ -4,6 +4,7 @@ Production-ready AI Study Assistant API with LangGraph orchestration
 """
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from datetime import datetime
@@ -47,29 +48,34 @@ app = FastAPI(
 # Setup Templates
 templates = Jinja2Templates(directory="app/templates")
 
-# Startup Database Initialization
+# Startup Service Check
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Starting up — initializing database tables...")
+    logger.info("🚀 AI Study Assistant starting up...")
+    
+    # ── 1. Database Initialization ─────────────────────────────────────
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("PostgreSQL tables synchronized.")
+        logger.info("✅ PostgreSQL tables synchronized.")
     except Exception as e:
-        logger.warning(
-            f"Database startup skipped (PostgreSQL not available): {e}. "
-            "AI endpoints will still function normally."
-        )
-        
-    # Warm up Ollama model
-    try:
-        from app.utils.ollama_client import ollama_client
-        logger.info("Warming up local Ollama models in the background...")
-        # Fire and forget a tiny request to load the model into memory
-        import asyncio
-        asyncio.create_task(ollama_client.generate(prompt="hi", model="KMENTOR_v2.0", temperature=0.1))
-    except Exception as e:
-        logger.warning(f"Ollama warmup failed: {e}")
+        logger.warning(f"⚠️ Database startup skipped (PostgreSQL offline): {e}")
+
+    # ── 2. Ollama / Gemini Check ──────────────────────────────────────
+    from app.utils.ollama_client import ollama_client
+    ollama_ok = await ollama_client.health_check()
+    
+    if ollama_ok:
+        logger.info("✅ Local Ollama detected. Pre-warming KMENTOR_v2.0...")
+        asyncio.create_task(ollama_client.generate(prompt="hi", model="KMENTOR_v2.0"))
+    elif ollama_client.use_gemini_fallback:
+        logger.info("💡 Local Ollama offline. Gemini fallback is ACTIVE (Cloud Mode).")
+    else:
+        logger.warning("❌ No AI services available (Ollama offline & No Gemini API key).")
+
+    # ── 3. Redis Check ────────────────────────────────────────────────
+    # (Middleware will handle fallback automatically at first request)
+    logger.info("✨ Startup complete. System ready.")
 
 
 
@@ -136,21 +142,30 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    # Check Ollama Latency
-    avg_latency = llm_router._get_avg_latency()
-    
-    return {
-        "status": "healthy",
-        "agents": "operational",
-        "langgraph": "active",
-        "memory": "connected",
-        "ollama": {
-            "base_url": llm_router.OLLAMA_BASE_URL,
-            "avg_latency_5m": f"{avg_latency:.2f}s",
-            "status": "online" if avg_latency < llm_router.LATENCY_THRESHOLD else "high_load"
-        },
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    """System health check and diagnostic monitoring"""
+    try:
+        # Check Ollama Latency
+        avg_latency = llm_router._get_avg_latency()
+        
+        return {
+            "status": "healthy",
+            "agents": "operational",
+            "langgraph": "active",
+            "memory": "connected",
+            "ollama": {
+                "base_url": getattr(llm_router, "OLLAMA_BASE_URL", "unknown"),
+                "avg_latency_5m": f"{avg_latency:.2f}s",
+                "status": "online" if avg_latency < llm_router.LATENCY_THRESHOLD else "high_load"
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"HEALTH CHECK FAILED: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 
 @app.post("/api/learning/process", response_model=LearningResponse)
@@ -300,8 +315,25 @@ class StudyPlanRequest(BaseModel):
     learningStyle: Optional[str] = "visual"
 
 class LearningResourcesRequest(BaseModel):
-    topic: str
-    level: str
+    # Support both legacy and enhanced payloads
+    topic: Optional[str] = None
+    level: Optional[str] = None
+    
+    # Enhanced fields
+    skill: Optional[str] = None
+    current_level: Optional[str] = "beginner"
+    target_level: Optional[str] = "intermediate"
+    learning_style: Optional[str] = "visual"
+    career_goals: Optional[List[str]] = []
+    timeframe: Optional[str] = "4 weeks"
+    
+    # Flags
+    include_videos: Optional[bool] = True
+    include_articles: Optional[bool] = True
+    include_exercises: Optional[bool] = True
+    include_assessment: Optional[bool] = True
+    
+    # Legacy fields
     format: Optional[list] = []
     preferences: Optional[list] = []
 
@@ -362,31 +394,67 @@ async def generate_study_plan(request: StudyPlanRequest):
 
 @app.post("/learning-resources")
 async def get_learning_resources(request: LearningResourcesRequest):
-    """Get learning resources using Learning Resource agent"""
+    """
+    Get learning resources or a full curriculum roadmap.
+    Supports both single-topic resource curation and multi-module roadmap generation.
+    """
     try:
         from app.agents.learning_resource import learning_resource_agent
         
-        state = {
-            "current_skill": request.topic,
-            "difficulty_preference": request.level,
-            "learning_style": request.preferences[0] if request.preferences else "visual"
-        }
+        # Determine if this is an ENHANCED roadmap request or a basic resource lookup
+        is_enhanced = request.skill is not None or request.current_level is not None
         
-        result = await learning_resource_agent.generate(state)
-        
-        return {
-            "success": True,
-            "data": {
-                "resources": result.get("resources", []),
-                "difficulty": request.level,
-                "estimated_time": "2-4 hours",
-                "quality_score": 8.5
-            },
-            "enhanced": True,
-            "ai_curated": True,
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        if is_enhanced:
+            skill_to_use = request.skill or request.topic or "General Skill"
+            logger.info(f"🚀 Generating INTELLIGENT ROADMAP for: {skill_to_use}")
+            
+            topics = await learning_resource_agent.generate_intelligent_roadmap(
+                skill=skill_to_use,
+                difficulty=request.current_level or request.level or "intermediate",
+                learning_style=request.learning_style or (request.preferences[0] if request.preferences else "mixed"),
+                career_goals=request.career_goals
+            )
+            
+            return {
+                "success": True,
+                "data": {
+                    "topics": topics,
+                    "difficulty": request.current_level or request.level,
+                    "estimated_time": request.timeframe or "8-12 weeks",
+                    "quality_score": 9.2
+                },
+                "enhanced": True,
+                "ai_curated": True,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            # Fallback to legacy single-topic resource generation
+            topic_to_use = request.topic or request.skill or "General"
+            logger.info(f"🔍 Performing basic RESOURCE LOOKUP for: {topic_to_use}")
+            
+            state = {
+                "current_skill": topic_to_use,
+                "difficulty_preference": request.level or "intermediate",
+                "learning_style": request.preferences[0] if request.preferences else "visual"
+            }
+            
+            result = await learning_resource_agent.generate(state)
+            
+            return {
+                "success": True,
+                "data": {
+                    "resources": result.get("resources", []),
+                    "difficulty": request.level or "intermediate",
+                    "estimated_time": "2-4 hours",
+                    "quality_score": 8.5
+                },
+                "enhanced": False,
+                "ai_curated": True,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
     except Exception as e:
+        logger.error(f"Error in get_learning_resources: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/assessment")

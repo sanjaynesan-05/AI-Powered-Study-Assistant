@@ -10,7 +10,7 @@ import { LandingPage } from './pages/LandingPage';
 import { AIMentorPage } from './pages/AIMentorPage';
 import AILearningHub from './pages/AILearningHub';
 import { ResumeBuilderPage } from './pages/ResumeBuilderPage';
-import { RecommendationPage } from './pages/RecommendationPage';
+import { MockTestPage } from './pages/MockTestPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ContinueLearningPage } from './pages/ContinueLearningPage';
 
@@ -36,7 +36,7 @@ function App() {
         <Route path="/ai-mentor" element={<AIMentorPage />} />
         <Route path="/ai-learning-hub" element={<AILearningHub />} />
         <Route path="/resume-builder" element={<ResumeBuilderPage />} />
-        <Route path="/recommendation" element={<RecommendationPage />} />
+        <Route path="/mock-test" element={<MockTestPage />} />
         <Route path="/continue-learning" element={<ContinueLearningPage />} />
       </Route>
 
