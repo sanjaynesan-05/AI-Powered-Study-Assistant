@@ -5,6 +5,9 @@ import { advancedAILearningService, LearningObjective, EnhancedTopic } from '../
 import { youtubeService, YouTubeVideo } from '../services/youtubeService';
 import { enhancedLearningPathService, EnhancedLearningPath } from '../services/enhancedLearningPathService';
 import StepByStepLearningPath from '../components/StepByStepLearningPath';
+import UnifiedLearningView from '../components/UnifiedLearningView';
+import ErrorBoundary from '../components/ErrorBoundary';
+import SkeletonLearningView from '../components/SkeletonLearningView';
 import {
   Brain,
   BookOpen,
@@ -24,11 +27,14 @@ import {
   Youtube,
   FileText,
   ChevronRight,
+  ChevronDown,
   Zap,
   Users,
   Code,
-  Sparkles
+  Sparkles,
+  Search
 } from 'lucide-react';
+import { useRef } from 'react';
 
 const AILearningHub: React.FC = () => {
   const { user } = useAuth();
@@ -61,7 +67,21 @@ const AILearningHub: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [showEnhancedPath, setShowEnhancedPath] = useState(false);
   const [loadingEnhancedPath, setLoadingEnhancedPath] = useState(false);
+  const [fullPipelineData, setFullPipelineData] = useState<any>(null);
+  const [isGeneratingPipeline, setIsGeneratingPipeline] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [loadingDuration, setLoadingDuration] = useState(0);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
+  const [requestHistory, setRequestHistory] = useState<string[]>([]);
+  const [persona, setPersona] = useState('mentor'); // mentor | coach | chill
+  const [userStats, setUserStats] = useState({ 
+    xp: parseInt(localStorage.getItem('ai_learning_xp') || '0'),
+    level: parseInt(localStorage.getItem('ai_learning_level') || '1') 
+  });
+  const resultsRef = useRef<HTMLDivElement>(null);
+  
   const [difficulty, setDifficulty] = useState('beginner');
+  const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState({
     timeCommitment: 10,
     learningStyle: 'mixed',
@@ -95,7 +115,50 @@ const AILearningHub: React.FC = () => {
     'Cloud Computing', 'Cybersecurity', 'Blockchain'
   ];
 
-  // Effects handled by AIAgentContext
+  useEffect(() => {
+    let interval: any;
+    let durationInterval: any;
+    
+    if (isGeneratingPipeline) {
+       interval = setInterval(() => {
+          setLoadingStep(prev => (prev < 3 ? prev + 1 : prev));
+       }, 5000);
+       
+       durationInterval = setInterval(() => {
+          setLoadingDuration(prev => prev + 1);
+       }, 1000);
+    } else {
+       setLoadingStep(0);
+       setLoadingDuration(0);
+       clearInterval(interval);
+       clearInterval(durationInterval);
+    }
+    return () => {
+       clearInterval(interval);
+       clearInterval(durationInterval);
+    };
+  }, [isGeneratingPipeline]);
+
+  useEffect(() => {
+    if (fullPipelineData && resultsRef.current) {
+       resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+       
+       // Award XP (Investor Grade Loop)
+       const newXP = userStats.xp + 50;
+       const newLevel = Math.floor(newXP / 250) + 1;
+       setUserStats({ xp: newXP, level: newLevel });
+       localStorage.setItem('ai_learning_xp', newXP.toString());
+       localStorage.setItem('ai_learning_level', newLevel.toString());
+    }
+  }, [fullPipelineData]);
+
+  // Derived Personalization Insights
+  const getPersonalizationInsight = () => {
+    if (requestHistory.length < 2) return "Establishing your learning profile...";
+    const focus = requestHistory[0];
+    const diffPref = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+    return `Optimized for your pattern: focusing on ${focus} with ${diffPref} depth.`;
+  };
 
   const handleGenerateJourney = async () => {
     if (!selectedSkill && !skillInput) return;
@@ -266,6 +329,10 @@ const AILearningHub: React.FC = () => {
     window.open(url, '_blank');
   };
 
+  const handleToggleTopicExpansion = (topicId: string) => {
+    setExpandedTopicId(prev => prev === topicId ? null : topicId);
+  };
+
   const handleGoToRoadmap = (_pathId: string, category: string) => {
     const roadmaps: Record<string, string> = {
       'Frontend Development': 'https://roadmap.sh/pdfs/roadmaps/frontend.pdf',
@@ -282,13 +349,42 @@ const AILearningHub: React.FC = () => {
   };
 
   // Enhanced AI-powered learning path generation
-  const handleGenerateEnhancedJourney = async () => {
-    const targetSkill = selectedSkill || skillInput;
-    if (!targetSkill) return;
+  const handleGenerateEnhancedJourney = async (forcedSkill?: string) => {
+    const baseSkill = forcedSkill || selectedSkill || skillInput;
+    if (!baseSkill || isGeneratingPipeline) return;
 
-    await generateEnhancedJourney(targetSkill, difficulty, preferences);
+    // Personality Injection
+    const personaInstruction = persona === 'coach' ? " (Fast-paced, action-oriented coach tone)" : 
+                               persona === 'chill' ? " (Relaxed, simple, conversational chill tone)" : 
+                               " (Structured, academic mentor tone)";
+    const targetSkill = baseSkill + personaInstruction;
+
+    // Update history
+    setRequestHistory(prev => {
+       const newHistory = [baseSkill, ...prev.filter(s => s !== baseSkill)].slice(0, 5);
+       return newHistory;
+    });
+
+    setIsGeneratingPipeline(true);
+    setLoadingStep(0);
+    setLoadingDuration(0);
+    setPipelineError(null);
+    setFullPipelineData(null);
+    
+    try {
+       const result = await advancedAILearningService.generateFullLearningPipeline(targetSkill);
+       if (result.status === "error") {
+           setPipelineError(result.warning || "There was an error generating your learning path.");
+       } else {
+           setFullPipelineData(result);
+       }
+    } catch (err: any) {
+       console.error("Pipeline Error", err);
+       setPipelineError(err.message || "A network error occurred. Please try again.");
+    } finally {
+       setIsGeneratingPipeline(false);
+    }
   };
-
   // Enhanced YouTube video search for topics
   const handleSearchVideosForTopic = async (topicName: string) => {
     try {
@@ -477,19 +573,68 @@ const AILearningHub: React.FC = () => {
                     setSkillInput(e.target.value);
                     setSelectedSkill('');
                   }}
+                  onKeyDown={(e) => {
+                    if(e.key === 'Enter') handleGenerateEnhancedJourney(skillInput);
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+              
+              {/* Request History */}
+              {requestHistory.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500 mb-2">Recent goals:</p>
+                  <div className="flex flex-wrap gap-2">
+                     {requestHistory.map((historyItem, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                             setSkillInput(historyItem);
+                             setSelectedSkill('');
+                             handleGenerateEnhancedJourney(historyItem);
+                          }}
+                          className="text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 rounded-full px-3 py-1 flex items-center transition"
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" />
+                          {historyItem}
+                        </button>
+                     ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Preferences */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 mt-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Difficulty Level</label>
+                <label className="text-sm font-bold flex items-center">
+                   <Users className="w-4 h-4 mr-2 text-indigo-500" />
+                   AI Personality Mode
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                   {['mentor', 'coach', 'chill'].map(p => (
+                      <button 
+                        key={p}
+                        onClick={() => setPersona(p)}
+                        className={`py-2 text-[10px] font-black uppercase tracking-tighter rounded-lg border transition-all ${
+                           persona === p ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-gray-100 text-gray-400 hover:border-indigo-200'
+                        }`}
+                      >
+                         {p}
+                      </button>
+                   ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold flex items-center">
+                   <TrendingUp className="w-4 h-4 mr-2 text-indigo-500" />
+                   Difficulty Level
+                </label>
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-100 bg-gray-50/50 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="beginner">Beginner</option>
                   <option value="intermediate">Intermediate</option>
@@ -544,37 +689,98 @@ const AILearningHub: React.FC = () => {
               />
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={handleGenerateEnhancedJourney}
-                disabled={isGenerating || (!selectedSkill && !skillInput)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-colors ${isGenerating || (!selectedSkill && !skillInput)
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
-                  }`}
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    <span>Generating Enhanced Journey...</span>
-                  </>
-                ) : (
-                  <>
-                    {enhancedLearningPathService.isSkillSupported(selectedSkill || skillInput) ? (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        <span>Generate Enhanced Learning Path</span>
-                      </>
-                    ) : (
-                      <>
-                        <Target className="h-4 w-4" />
-                        <span>Generate AI Journey</span>
-                      </>
-                    )}
-                  </>
-                )}
-              </button>
+              {isGeneratingPipeline && (
+                <div className="w-full mt-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  {/* Progress Bar Container */}
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-500 mb-1">
+                    <span className="uppercase tracking-wider">Pipeline Progress</span>
+                    <span>{Math.min(loadingStep * 25 + 10, 100)}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600 transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                      style={{ width: `${Math.min(loadingStep * 25 + 10, 100)}%` }}
+                    ></div>
+                  </div>
+
+                  {/* Node Flow Graph Visualization */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100 relative overflow-hidden">
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+                       {/* Connection Paths */}
+                       <path 
+                         d="M 120 40 L 280 40" 
+                         stroke={loadingStep > 0 ? "#6366f1" : "#e5e7eb"} 
+                         strokeWidth="2" fill="none" 
+                         className={loadingStep === 1 ? "animate-dash" : ""}
+                         strokeDasharray={loadingStep === 1 ? "5,5" : "0"}
+                       />
+                       <path 
+                         d="M 380 40 C 440 40, 440 10, 500 10" 
+                         stroke={loadingStep > 1 ? "#6366f1" : "#e5e7eb"} 
+                         strokeWidth="2" fill="none"
+                         className={loadingStep === 2 ? "animate-dash" : ""}
+                       />
+                       <path 
+                         d="M 380 40 C 440 40, 440 70, 500 70" 
+                         stroke={loadingStep > 1 ? "#6366f1" : "#e5e7eb"} 
+                         strokeWidth="2" fill="none"
+                         className={loadingStep === 2 ? "animate-dash" : ""}
+                       />
+                    </svg>
+
+                    <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
+                       {/* Step 1: Orchestrator */}
+                       <div className="flex justify-center">
+                          <div className={`w-32 p-3 rounded-2xl border bg-white flex flex-col items-center text-center transition-all duration-500 ${loadingStep === 0 ? 'border-indigo-400 shadow-lg scale-110' : 'border-gray-100 opacity-60'}`}>
+                             <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${loadingStep === 0 ? 'bg-indigo-600 text-white animate-pulse' : 'bg-gray-100 text-gray-400'}`}>
+                                <Brain className="w-5 h-5" />
+                             </div>
+                             <span className="text-[10px] font-black uppercase tracking-tighter">Orchestrator</span>
+                             {loadingStep === 0 && <span className="text-[8px] text-indigo-400 animate-pulse">Analyzing...</span>}
+                          </div>
+                       </div>
+
+                       {/* Step 2: Course Gen */}
+                       <div className="flex justify-center">
+                          <div className={`w-32 p-3 rounded-2xl border bg-white flex flex-col items-center text-center transition-all duration-500 ${loadingStep === 1 ? 'border-indigo-400 shadow-lg scale-110' : 'border-gray-100 opacity-60'}`}>
+                             <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${loadingStep === 1 ? 'bg-indigo-600 text-white animate-pulse' : 'bg-gray-100 text-gray-400'}`}>
+                                <Code className="w-5 h-5" />
+                             </div>
+                             <span className="text-[10px] font-black uppercase tracking-tighter">Course Gen</span>
+                             {loadingStep === 1 && <span className="text-[8px] text-indigo-400 animate-pulse">Building...</span>}
+                          </div>
+                       </div>
+
+                       {/* Step 3: Parallel Agents */}
+                       <div className="flex flex-col space-y-4">
+                          <div className={`w-32 p-2 rounded-xl border bg-white flex items-center space-x-2 transition-all duration-500 ${loadingStep === 2 ? 'border-indigo-400 shadow shadow-indigo-100 translate-x-2' : 'border-gray-100 opacity-40'}`}>
+                             <div className={`w-6 h-6 rounded-full flex items-center justify-center ${loadingStep === 2 ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                <Youtube className="w-3 h-3" />
+                             </div>
+                             <span className="text-[8px] font-black uppercase tracking-tighter">Resources</span>
+                          </div>
+                          <div className={`w-32 p-2 rounded-xl border bg-white flex items-center space-x-2 transition-all duration-500 ${loadingStep >= 3 ? 'border-indigo-400 shadow shadow-indigo-100 translate-x-2' : 'border-gray-100 opacity-40'}`}>
+                             <div className={`w-6 h-6 rounded-full flex items-center justify-center ${loadingStep >= 3 ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                <Award className="w-3 h-3" />
+                             </div>
+                             <span className="text-[8px] font-black uppercase tracking-tighter">Quiz Engine</span>
+                          </div>
+                       </div>
+                    </div>
+                  </div>
+
+                  {loadingDuration > 15 && (
+                     <div className="flex items-center justify-center space-x-2 py-2 bg-amber-50 border border-amber-100 rounded-lg animate-pulse">
+                       <Clock className="w-4 h-4 text-amber-600" />
+                       <span className="text-amber-700 text-xs font-medium">This is taking longer than usual due to high complexity...</span>
+                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 items-center mt-6">
+
 
               <button
                 onClick={handleGenerateJourney}
@@ -625,9 +831,54 @@ const AILearningHub: React.FC = () => {
                 <span>Create Assessment</span>
               </button>
             </div>
+            
+            {/* Pipeline Error State */}
+            {pipelineError && (
+              <div className="mt-8 bg-red-50 border border-red-200 rounded-lg p-6 flex flex-col items-center justify-center animate-fade-in text-center">
+                <XCircle className="h-10 w-10 text-red-500 mb-3" />
+                <h3 className="text-xl font-bold text-red-800 mb-2">Generation Failed</h3>
+                <p className="text-red-600 mb-6">{pipelineError}</p>
+                <button 
+                  onClick={() => handleGenerateEnhancedJourney()}
+                  className="px-6 py-2 bg-red-600 text-white font-medium rounded-lg shadow hover:bg-red-700 transition flex items-center space-x-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Retry Pipeline</span>
+                </button>
+              </div>
+            )}
+            
+            {/* Empty State / Standby */}
+            {!fullPipelineData && !isGeneratingPipeline && !pipelineError && (
+              <div className="mt-8 border-2 border-dashed border-gray-200 rounded-xl p-12 flex flex-col items-center justify-center text-center opacity-70">
+                 <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                    <Search className="w-8 h-8 text-blue-400" />
+                 </div>
+                 <h3 className="text-lg font-medium text-gray-700 mb-1">Enter a goal up top</h3>
+                 <p className="text-gray-500">Pick a popular skill or type your own to generate your AI learning path.</p>
+              </div>
+            )}
+
+            {/* Unified Learning Pipeline Results */}
+            {isGeneratingPipeline && (
+               <div className="mt-8">
+                  <SkeletonLearningView />
+               </div>
+            )}
+
+            {fullPipelineData && (
+              <div ref={resultsRef} className="animate-fade-in mt-8 w-full block">
+                 <ErrorBoundary>
+                   <UnifiedLearningView 
+                      pipelineResponse={fullPipelineData}
+                      onRegenerate={() => handleGenerateEnhancedJourney()}
+                   />
+                 </ErrorBoundary>
+              </div>
+            )}
 
             {/* Journey Results */}
-            {currentJourney && (
+            {currentJourney && !fullPipelineData && (
               <div className="mt-8 space-y-6">
                 <h3 className="text-xl font-semibold">Your AI-Generated Learning Journey</h3>
 
@@ -1198,19 +1449,30 @@ const AILearningHub: React.FC = () => {
                     {pathTopics.map((topic, index) => (
                       <div
                         key={topic.id}
-                        className={`p-4 border-b border-gray-200 last:border-b-0 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                          }`}
+                        className={`p-4 border-b border-gray-200 last:border-b-0 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                       >
-                        <div className="flex items-start justify-between mb-3">
+                        <div 
+                          className="flex items-start justify-between mb-3 cursor-pointer group"
+                          onClick={() => handleToggleTopicExpansion(topic.id)}
+                        >
                           <div className="flex-1">
-                            <h4 className="text-sm font-medium text-gray-900 mb-1">{topic.name}</h4>
-                            <div className="flex items-center text-xs text-gray-500">
+                            <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center group-hover:text-blue-600 transition">
+                              {expandedTopicId === topic.id ? 
+                                <ChevronDown className="w-3 h-3 mr-2 text-blue-500" /> : 
+                                <ChevronRight className="w-3 h-3 mr-2 text-gray-400" />
+                              }
+                              {topic.name}
+                            </h4>
+                            <div className="flex items-center text-xs text-gray-500 ml-5">
                               <Clock className="w-3 h-3 mr-1" />
                               <span>{topic.estimatedTime}</span>
                             </div>
                           </div>
                           <button
-                            onClick={() => handleToggleTopicComplete(topic.id)}
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               handleToggleTopicComplete(topic.id);
+                            }}
                             className={`w-5 h-5 flex items-center justify-center rounded transition-all duration-300 ml-2 ${topic.completed
                               ? 'bg-green-500 text-white'
                               : 'border border-gray-300 text-gray-400'
@@ -1219,7 +1481,34 @@ const AILearningHub: React.FC = () => {
                             {topic.completed && <CheckCircle className="w-3 h-3" />}
                           </button>
                         </div>
-                        <div className="flex space-x-2">
+                        
+                        {expandedTopicId === topic.id && (
+                          <div className="mt-2 ml-5 mb-4 animate-in slide-in-from-top-1 duration-300">
+                             <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                                {topic.description || "In-depth learning content is being finalized for this module."}
+                             </p>
+                             <div className="flex flex-wrap gap-2">
+                                {topic.videoUrl && (
+                                   <button 
+                                     onClick={() => handleOpenResource(topic.videoUrl)}
+                                     className="flex items-center px-3 py-1.5 text-xs font-bold bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                   >
+                                      <Youtube className="w-3 h-3 mr-1" /> Video
+                                   </button>
+                                )}
+                                {topic.articleUrl && (
+                                   <button 
+                                     onClick={() => handleOpenResource(topic.articleUrl)}
+                                     className="flex items-center px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                   >
+                                      <FileText className="w-3 h-3 mr-1" /> Guide
+                                   </button>
+                                )}
+                             </div>
+                          </div>
+                        )}
+
+                        <div className="flex space-x-2 ml-5">
                           {topic.hasVideo && (
                             <div className="flex space-x-1">
                               <button
@@ -1273,63 +1562,110 @@ const AILearningHub: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {pathTopics.map((topic, index) => (
-                          <tr
-                            key={topic.id}
-                            className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                              } hover:bg-blue-50 transition-colors duration-150`}
-                          >
-                            <td className="px-6 py-4">
-                              <div className="text-sm font-medium text-gray-900">{topic.name}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center text-sm text-gray-500">
-                                <Clock className="w-4 h-4 mr-1" />
-                                <span>{topic.estimatedTime}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex space-x-3">
-                                {topic.hasVideo && (
-                                  <div className="flex space-x-1">
-                                    <button
-                                      onClick={() => handleOpenResource(topic.videoUrl)}
-                                      className="p-2 text-red-600 transition-colors bg-red-100 rounded-full hover:bg-red-200"
-                                      title="Watch Video"
-                                    >
-                                      <Youtube className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleSearchVideosForTopic(topic.name)}
-                                      className="p-2 text-red-600 transition-colors bg-red-50 border border-red-200 rounded-full hover:bg-red-100"
-                                      title="Search for more videos"
-                                    >
-                                      <Zap className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                )}
-                                {topic.hasArticle && (
-                                  <button
-                                    onClick={() => handleOpenResource(topic.articleUrl)}
-                                    className="p-2 text-blue-600 transition-colors bg-blue-100 rounded-full hover:bg-blue-200"
-                                    title="Read Article"
-                                  >
-                                    <FileText className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <button
-                                onClick={() => handleToggleTopicComplete(topic.id)}
-                                className={`w-6 h-6 flex items-center justify-center rounded-md transition-all duration-300 ${topic.completed
-                                  ? 'bg-green-500 text-white hover:bg-green-600'
-                                  : 'border border-gray-300 text-gray-400 hover:border-gray-400'
-                                  }`}
+                          <React.Fragment key={topic.id}>
+                            <tr
+                              className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150 group`}
+                            >
+                              <td 
+                                className="px-6 py-4 cursor-pointer"
+                                onClick={() => handleToggleTopicExpansion(topic.id)}
                               >
-                                {topic.completed && <CheckCircle className="w-4 h-4" />}
-                              </button>
-                            </td>
-                          </tr>
+                                <div className="flex items-center text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition">
+                                  {expandedTopicId === topic.id ? 
+                                    <ChevronDown className="w-4 h-4 mr-3 text-blue-500 scale-125 transition-transform" /> : 
+                                    <ChevronRight className="w-4 h-4 mr-3 text-gray-400 group-hover:text-blue-400 transition-transform" />
+                                  }
+                                  {topic.name}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center text-sm text-gray-500">
+                                  <Clock className="w-4 h-4 mr-1 text-blue-400" />
+                                  <span>{topic.estimatedTime}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex space-x-3">
+                                  {topic.hasVideo && (
+                                    <div className="flex space-x-1">
+                                      <button
+                                        onClick={() => handleOpenResource(topic.videoUrl)}
+                                        className="p-2 text-red-600 transition-colors bg-red-100 rounded-full hover:bg-red-200"
+                                        title="Watch Video"
+                                      >
+                                        <Youtube className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleSearchVideosForTopic(topic.name)}
+                                        className="p-2 text-red-600 transition-colors bg-red-50 border border-red-200 rounded-full hover:bg-red-100"
+                                        title="Search for more videos"
+                                      >
+                                        <Zap className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  )}
+                                  {topic.hasArticle && (
+                                    <button
+                                      onClick={() => handleOpenResource(topic.articleUrl)}
+                                      className="p-2 text-blue-600 transition-colors bg-blue-100 rounded-full hover:bg-blue-200"
+                                      title="Read Article"
+                                    >
+                                      <FileText className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <button
+                                  onClick={() => handleToggleTopicComplete(topic.id)}
+                                  className={`w-6 h-6 flex items-center justify-center rounded-md transition-all duration-300 ${topic.completed
+                                    ? 'bg-green-500 text-white hover:bg-green-600'
+                                    : 'border border-gray-300 text-gray-400 hover:border-gray-400'
+                                    }`}
+                                >
+                                  {topic.completed && <CheckCircle className="w-4 h-4" />}
+                                </button>
+                              </td>
+                            </tr>
+                            {expandedTopicId === topic.id && (
+                              <tr className="bg-blue-50/20">
+                                <td colSpan={4} className="px-8 py-6 border-t border-blue-100 shadow-inner">
+                                  <div className="animate-in slide-in-from-top-2 duration-400">
+                                    <div className="flex items-start space-x-4 mb-4">
+                                       <div className="p-2 bg-blue-100 rounded-lg">
+                                          <BookOpen className="w-5 h-5 text-blue-600" />
+                                       </div>
+                                       <div className="flex-1">
+                                          <h5 className="text-sm font-bold text-gray-800 mb-1">Topic Insight</h5>
+                                          <p className="text-sm text-gray-600 leading-relaxed max-w-3xl">
+                                            {topic.description || "In-depth learning content is being finalized for this module. Explore the resources below to get started."}
+                                          </p>
+                                       </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-3 mt-4 pl-11">
+                                      {topic.videoUrl && (
+                                        <button 
+                                          onClick={() => handleOpenResource(topic.videoUrl)} 
+                                          className="flex items-center px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-red-700 transition shadow-sm hover:shadow-md"
+                                        >
+                                          <Youtube className="w-4 h-4 mr-2" /> Launch Video Player
+                                        </button>
+                                      )}
+                                      {topic.articleUrl && (
+                                        <button 
+                                          onClick={() => handleOpenResource(topic.articleUrl)} 
+                                          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition shadow-sm hover:shadow-md"
+                                        >
+                                          <FileText className="w-4 h-4 mr-2" /> Access Documentation
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>

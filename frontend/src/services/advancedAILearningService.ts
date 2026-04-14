@@ -223,6 +223,20 @@ class AdvancedAILearningService {
     }
   }
 
+  // --- NEW INTEGRATION METHOD ---
+  // Step 4: Frontend API Integration
+  async generateFullLearningPipeline(goal: string): Promise<any> {
+    try {
+      const response = await this.makeAIRequest('/generate-learning', {
+        goal: goal
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Learning pipeline generation error:', error);
+      throw error;
+    }
+  }
+
   // Utility methods
   private async makeAIRequest(endpoint: string, data: any): Promise<any> {
     try {

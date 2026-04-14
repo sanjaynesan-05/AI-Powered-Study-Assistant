@@ -36,6 +36,11 @@ from app.utils.metrics import metrics
 from app.routes.auth_google import router as auth_google_router
 from app.routes.ai_agents import router as ai_agents_router
 from app.db import engine, Base
+from app.agents.course_pipeline import course_pipeline
+import hashlib
+import time
+import uuid
+from redis import asyncio as aioredis
 
 
 # Initialize FastAPI app
@@ -109,6 +114,10 @@ class LearningRequest(BaseModel):
     user_input: str
     session_id: Optional[str] = None
     mastered_skills: Optional[list] = []
+
+class GenerateLearningRequest(BaseModel):
+    goal: str
+
 
 class LearningResponse(BaseModel):
     success: bool
@@ -225,6 +234,99 @@ async def process_learning_request(request: LearningRequest):
             status_code=500,
             detail=f"Error processing request: {str(e)}"
         )
+
+# Simple in-memory cache fallback for generated learning journeys
+_learning_cache = {}
+
+@app.post("/generate-learning")
+async def generate_learning_endpoint(request: GenerateLearningRequest):
+    """
+    Generate a full end-to-end learning journey including course layout,
+    resources, and a mock test. Caches responses to reduce latency.
+    """
+    request_id = str(uuid.uuid4())
+    start_time = time.time()
+    
+    goal = request.goal.strip()
+    if not goal:
+        return {
+            "id": request_id,
+            "status": "error",
+            "data": {},
+            "cached": False,
+            "warning": "",
+            "meta": { "generation_time": "0s", "retry_count": 0 }
+        }
+        
+    cache_key = f"generate_learning_{hashlib.md5(goal.lower().encode()).hexdigest()}"
+    redis_client = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+    
+    # 1. Try Cache
+    try:
+        cached_data = await redis_client.get(cache_key)
+        if cached_data:
+            cache_payload = json.loads(cached_data)
+            logger.info(f"Serving generated learning journey from Redis cache for: {goal}")
+            cache_payload["id"] = request_id
+            cache_payload["cached"] = True
+            return cache_payload
+    except Exception as e:
+        logger.warning(f"Redis cache GET failed: {e}")
+        if cache_key in _learning_cache:
+            logger.info(f"Serving generated learning journey from Memory cache for: {goal}")
+            cache_payload = _learning_cache[cache_key]
+            cache_payload["id"] = request_id
+            cache_payload["cached"] = True
+            return cache_payload
+
+    # 2. Generate from Pipeline
+    try:
+        logger.info(f"Generating learning journey via AI Pipeline for: {goal}")
+        data = await course_pipeline.generate_full_learning(goal)
+        
+        generation_time = f"{round(time.time() - start_time, 2)}s"
+        
+        warning_str = " | ".join(data.get("warnings", []))
+        
+        response_payload = {
+            "id": request_id,
+            "status": "success",
+            "data": {
+                "course": data.get("course"),
+                "mock_test": data.get("mock_test")
+            },
+            "cached": False,
+            "warning": warning_str,
+            "meta": {
+                "generation_time": generation_time,
+                "retry_count": 0 # We abstract the pipeline retries to 0 if succeeded finally
+            }
+        }
+        
+        # 3. Cache Result (1 hour)
+        try:
+            await redis_client.setex(cache_key, 3600, json.dumps(response_payload))
+        except Exception as e:
+            logger.warning(f"Redis cache SET failed: {e}. Storing in memory.")
+            _learning_cache[cache_key] = response_payload
+            
+        return response_payload
+
+    except Exception as e:
+        logger.error(f"Error generating learning roadmap: {e}")
+        generation_time = f"{round(time.time() - start_time, 2)}s"
+        return {
+            "id": request_id,
+            "status": "error",
+            "data": {},
+            "cached": False,
+            "warning": str(e),
+            "meta": {
+                "generation_time": generation_time,
+                "retry_count": 0
+            }
+        }
+
 
 @app.get("/api/memory/profile/{user_id}")
 async def get_user_profile(user_id: str):
